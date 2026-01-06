@@ -1,5 +1,6 @@
 package com.example.soundly.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,12 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Playlist
+import com.example.soundly.presentation.theme.dialogGradient
 
 @Composable
 fun AddToPlaylistDialog(
@@ -32,24 +35,36 @@ fun AddToPlaylistDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 400.dp),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2355))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .background(dialogGradient())
+                    .padding(16.dp)
+            ) {
                 Text(
                     text = "Добавить в плейлист",
                     style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                ListItem(
+                Surface(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable(onClick = onCreateNew),
-                    headlineContent = { Text("Создать новый плейлист") },
-                    leadingContent = {
+                    color = Color(0x30FFFFFF),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -60,11 +75,19 @@ fun AddToPlaylistDialog(
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            "Создать новый плейлист",
+                            color = Color.White
+                        )
                     }
-                )
+                }
 
                 if (playlists.isNotEmpty()) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = Color.White.copy(alpha = 0.1f)
+                    )
 
                     LazyColumn {
                         items(playlists) { playlist ->
@@ -82,7 +105,7 @@ fun AddToPlaylistDialog(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Отмена")
+                    Text("Отмена", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -94,48 +117,74 @@ fun PlaylistSelectItem(
     playlist: Playlist,
     onClick: () -> Unit
 ) {
-    ListItem(
+    Surface(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
-        headlineContent = {
-            Text(
-                text = playlist.name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            Text(
-                text = "${playlist.trackIds.size} треков",
-                style = MaterialTheme.typography.bodySmall
-            )
-        },
-        leadingContent = {
+        color = Color(0x20FFFFFF),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             if (playlist.coverUri != null) {
-                AsyncImage(
-                    model = playlist.coverUri,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                if (playlist.coverUri.startsWith("emoji:")) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                playlist.coverUri.removePrefix("emoji:"),
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                    }
+                } else {
+                    AsyncImage(
+                        model = playlist.coverUri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             } else {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.QueueMusic,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column {
+                Text(
+                    text = playlist.name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.White
+                )
+                Text(
+                    text = "${playlist.trackIds.size} треков",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
         }
-    )
+    }
 }

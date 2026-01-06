@@ -7,6 +7,8 @@ import com.example.soundly.data.repository.AuthRepository
 import com.example.soundly.data.repository.SyncRepository
 import com.example.soundly.data.repository.UserStats
 import com.example.soundly.domain.repository.PlaylistRepository
+import com.example.soundly.domain.repository.TrackRepository
+import com.example.soundly.presentation.theme.ColorPalette
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,6 +21,7 @@ data class ProfileUiState(
     val avatarUrl: String? = null,
     val stats: UserStats = UserStats(),
     val isDarkTheme: Boolean = false,
+    val colorPalette: String = "purple",
     val isAutoPlay: Boolean = true,
     val isShuffleEnabled: Boolean = false,
     val isSyncing: Boolean = false
@@ -29,7 +32,8 @@ class ProfileViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val authRepository: AuthRepository,
     private val syncRepository: SyncRepository,
-    private val playlistRepository: PlaylistRepository
+    private val playlistRepository: PlaylistRepository,
+    private val trackRepository: TrackRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -38,6 +42,7 @@ class ProfileViewModel @Inject constructor(
     init {
         observePreferences()
         loadStats()
+        observeLocalFavorites()
     }
 
     private fun observePreferences() {
@@ -48,6 +53,7 @@ class ProfileViewModel @Inject constructor(
                 preferencesManager.userEmail,
                 preferencesManager.userAvatar,
                 preferencesManager.isDarkTheme,
+                preferencesManager.colorPalette,
                 preferencesManager.isAutoPlay,
                 preferencesManager.isShuffleEnabled
             ) { values ->
@@ -57,8 +63,9 @@ class ProfileViewModel @Inject constructor(
                     userEmail = values[2] as String?,
                     avatarUrl = values[3] as String?,
                     isDarkTheme = values[4] as Boolean,
-                    isAutoPlay = values[5] as Boolean,
-                    isShuffleEnabled = values[6] as Boolean,
+                    colorPalette = values[5] as String,
+                    isAutoPlay = values[6] as Boolean,
+                    isShuffleEnabled = values[7] as Boolean,
                     stats = _uiState.value.stats,
                     isSyncing = _uiState.value.isSyncing
                 )
@@ -68,17 +75,44 @@ class ProfileViewModel @Inject constructor(
         }
     }
     
+    private fun observeLocalFavorites() {
+        viewModelScope.launch {
+            trackRepository.getFavoriteTracks().collect { favorites ->
+                _uiState.update { state ->
+                    state.copy(
+                        stats = state.stats.copy(favoritesCount = favorites.size)
+                    )
+                }
+            }
+        }
+    }
+    
     private fun loadStats() {
         viewModelScope.launch {
             if (authRepository.isLoggedIn()) {
                 val stats = syncRepository.getListeningStats()
-                _uiState.update { it.copy(stats = stats) }
+                // Получаем реальное количество избранных из локальной БД
+                trackRepository.getFavoriteTracks().first().let { favorites ->
+                    _uiState.update { 
+                        it.copy(stats = stats.copy(favoritesCount = favorites.size)) 
+                    }
+                }
             }
         }
     }
     
     fun refreshStats() {
         loadStats()
+    }
+    
+    fun updateUserName(newName: String) {
+        viewModelScope.launch {
+            preferencesManager.setUserName(newName)
+            // Также обновляем в облаке если залогинен
+            if (authRepository.isLoggedIn()) {
+                syncRepository.updateProfile(newName, _uiState.value.avatarUrl)
+            }
+        }
     }
     
     fun syncData() {
@@ -96,6 +130,12 @@ class ProfileViewModel @Inject constructor(
     fun setDarkTheme(enabled: Boolean) {
         viewModelScope.launch {
             preferencesManager.setDarkTheme(enabled)
+        }
+    }
+    
+    fun setColorPalette(paletteId: String) {
+        viewModelScope.launch {
+            preferencesManager.setColorPalette(paletteId)
         }
     }
 

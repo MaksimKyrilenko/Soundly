@@ -34,6 +34,8 @@ import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.components.TrackSelectionDialog
 import com.example.soundly.presentation.navigation.Screen
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -91,7 +93,7 @@ fun PlaylistDetailScreen(
                     Button(onClick = { navController.popBackStack() }) { Text("Назад") }
                 }
             }
-            else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(padding)) {
+            else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize().background(backgroundGradient()).padding(padding)) {
                 item { PDHeader(playlist.name, playlist.description, playlist.coverUri, tracks.size, totalDuration, { viewModel.playPlaylist() }, { viewModel.playPlaylistShuffled() }, tracks.isNotEmpty()) }
                 item {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {

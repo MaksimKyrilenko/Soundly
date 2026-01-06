@@ -148,26 +148,38 @@ class TrackRepositoryImpl @Inject constructor(
             }
         }
 
-        // Получаем существующие треки чтобы сохранить их состояние (избранное, playCount, и YouTube треки)
+        // Получаем существующие треки чтобы сохранить их состояние (избранное, playCount, и YouTube/экспортированные треки)
         val existingTracks = trackDao.getAllTracksOnce().associateBy { it.id }
         
-        // Собираем пути файлов YouTube треков для проверки дубликатов
-        val youtubeTrackPaths = existingTracks.values
-            .filter { it.id.startsWith("yt_") }
+        android.util.Log.d("TrackRepo", "Existing tracks count: ${existingTracks.size}")
+        android.util.Log.d("TrackRepo", "Existing exp_ tracks: ${existingTracks.values.filter { it.id.startsWith("exp_") }.map { "${it.id} -> ${it.uri}" }}")
+        
+        // Собираем пути файлов YouTube и экспортированных треков для проверки дубликатов
+        val customTrackPaths = existingTracks.values
+            .filter { it.id.startsWith("yt_") || it.id.startsWith("exp_") }
             .mapNotNull { entity ->
                 // Извлекаем путь из URI (поддерживаем разные форматы)
-                extractFilePath(entity.uri)
+                val path = extractFilePath(entity.uri)
+                android.util.Log.d("TrackRepo", "Custom track: ${entity.id}, uri=${entity.uri}, extractedPath=$path")
+                path
             }
             .toSet()
         
-        android.util.Log.d("TrackRepo", "YouTube track paths: $youtubeTrackPaths")
+        android.util.Log.d("TrackRepo", "Custom track paths (YT + Exported): $customTrackPaths")
         
-        // Фильтруем MediaStore треки - исключаем те, что уже есть как YouTube треки
+        // Фильтруем MediaStore треки - исключаем те, что уже есть как YouTube/экспортированные треки
+        // Также исключаем ВСЕ треки из папки Soundly/Exports - они должны добавляться только через экспорт
         val filteredTracks = tracksWithPaths
-            .filter { (_, filePath) -> 
-                val dominated = youtubeTrackPaths.contains(filePath)
+            .filter { (track, filePath) -> 
+                // Исключаем все треки из папки экспорта - они управляются приложением
+                if (filePath.contains("/Soundly/Exports/")) {
+                    android.util.Log.d("TrackRepo", "Skipping MediaStore track from Exports folder: $filePath")
+                    return@filter false
+                }
+                
+                val dominated = customTrackPaths.contains(filePath)
                 if (dominated) {
-                    android.util.Log.d("TrackRepo", "Skipping MediaStore track (duplicate of YT): $filePath")
+                    android.util.Log.d("TrackRepo", "Skipping MediaStore track (duplicate of custom): $filePath")
                 }
                 !dominated
             }
@@ -176,9 +188,9 @@ class TrackRepositoryImpl @Inject constructor(
         // Собираем ID треков из отфильтрованного MediaStore
         val mediaStoreIds = filteredTracks.map { it.id }.toSet()
         
-        // Сохраняем YouTube треки (которых нет в MediaStore)
-        val youtubeTracksToKeep = existingTracks.values.filter { 
-            it.id.startsWith("yt_") || !mediaStoreIds.contains(it.id)
+        // Сохраняем YouTube и экспортированные треки (которых нет в MediaStore)
+        val customTracksToKeep = existingTracks.values.filter { 
+            it.id.startsWith("yt_") || it.id.startsWith("exp_") || !mediaStoreIds.contains(it.id)
         }
         
         // Обновляем треки из MediaStore, сохраняя состояние
@@ -189,7 +201,7 @@ class TrackRepositoryImpl @Inject constructor(
                 playCount = existing?.playCount ?: 0,
                 lastPlayedAt = existing?.lastPlayedAt
             ))
-        } + youtubeTracksToKeep
+        } + customTracksToKeep
         
         trackDao.insertTracks(tracksToInsert)
         

@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,6 +24,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.screens.home.formatDuration
+import com.example.soundly.presentation.theme.backgroundGradient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,82 +37,106 @@ fun FavoritesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Избранное") },
+                title = { Text("Избранное", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = Color.White)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
-        }
+        },
+        containerColor = Color.Transparent
     ) { paddingValues ->
-        if (uiState.tracks.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Нет избранных треков",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Добавляйте треки в избранное нажатием на ❤️",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        FilledTonalButton(
-                            onClick = { viewModel.playAll() },
-                            modifier = Modifier.weight(1f)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundGradient())
+        ) {
+            if (uiState.tracks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0x30FFFFFF)
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Воспроизвести")
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.FavoriteBorder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
-                        OutlinedButton(
-                            onClick = { viewModel.shufflePlay() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Shuffle, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Перемешать")
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Нет избранных треков",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Добавляйте треки в избранное нажатием на ❤️",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
                     }
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.playAll() },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Воспроизвести", color = Color.White)
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.shufflePlay() },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(Icons.Default.Shuffle, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Перемешать")
+                            }
+                        }
+                    }
 
-                items(uiState.tracks, key = { it.id }) { track ->
-                    FavoriteTrackItem(
-                        track = track,
-                        onClick = { viewModel.playTrack(track) },
-                        onRemoveClick = { viewModel.removeFromFavorites(track.id) }
-                    )
+                    items(uiState.tracks, key = { it.id }) { track ->
+                        FavoriteTrackItem(
+                            track = track,
+                            onClick = { viewModel.playTrack(track) },
+                            onRemoveClick = { viewModel.removeFromFavorites(track.id) }
+                        )
+                    }
                 }
             }
         }
@@ -123,68 +149,78 @@ fun FavoriteTrackItem(
     onClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
-    Column {
-        ListItem(
-            modifier = Modifier.clickable(onClick = onClick),
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent
-            ),
-            headlineContent = {
-                Text(
-                    text = track.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            supportingContent = {
-                Text(
-                    text = track.artist,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            leadingContent = {
-                AsyncImage(
-                    model = track.artworkUri,
-                    contentDescription = "Album art",
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
-            },
-            trailingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = formatDuration(track.duration),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    IconButton(onClick = onRemoveClick) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "Удалить из избранного",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        )
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(1.dp)
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            Color.Transparent
+                            Color(0xFF2D2560),
+                            Color(0xFF352A65),
+                            Color(0xFF2D2560)
                         )
-                    )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 )
-        )
+        ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Album art
+            AsyncImage(
+                model = track.artworkUri,
+                contentDescription = "Album art",
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            // Track info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = track.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+                Text(
+                    text = track.artist,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+            
+            // Duration and favorite button
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatDuration(track.duration),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+                IconButton(onClick = onRemoveClick) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Удалить из избранного",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+        }
     }
 }

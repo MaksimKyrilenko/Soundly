@@ -20,6 +20,7 @@ class PreferencesManager @Inject constructor(
 
     companion object {
         val DARK_THEME = booleanPreferencesKey("dark_theme")
+        val COLOR_PALETTE = stringPreferencesKey("color_palette")
         val AUTO_PLAY = booleanPreferencesKey("auto_play")
         val SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")
         val REPEAT_MODE = intPreferencesKey("repeat_mode")
@@ -39,6 +40,7 @@ class PreferencesManager @Inject constructor(
     }
 
     val isDarkTheme: Flow<Boolean> = dataStore.data.map { it[DARK_THEME] ?: true }
+    val colorPalette: Flow<String> = dataStore.data.map { it[COLOR_PALETTE] ?: "purple" }
     val isAutoPlay: Flow<Boolean> = dataStore.data.map { it[AUTO_PLAY] ?: true }
     val isShuffleEnabled: Flow<Boolean> = dataStore.data.map { it[SHUFFLE_ENABLED] ?: false }
     val repeatMode: Flow<Int> = dataStore.data.map { it[REPEAT_MODE] ?: 0 }
@@ -58,6 +60,10 @@ class PreferencesManager @Inject constructor(
 
     suspend fun setDarkTheme(enabled: Boolean) {
         dataStore.edit { it[DARK_THEME] = enabled }
+    }
+    
+    suspend fun setColorPalette(palette: String) {
+        dataStore.edit { it[COLOR_PALETTE] = palette }
     }
 
     suspend fun setAutoPlay(enabled: Boolean) {
@@ -120,6 +126,10 @@ class PreferencesManager @Inject constructor(
             avatar?.let { url -> it[USER_AVATAR] = url }
             it[IS_LOGGED_IN] = true
         }
+    }
+    
+    suspend fun setUserName(name: String) {
+        dataStore.edit { it[USER_NAME] = name }
     }
 
     suspend fun clearUserData() {

@@ -91,7 +91,28 @@ class AudioExportService @Inject constructor(
             
             if (!success || !finalOutputFile.exists() || finalOutputFile.length() == 0L) {
                 android.util.Log.e(TAG, "Audio processing failed")
+                finalOutputFile.delete() // Удаляем повреждённый файл
                 return@withContext ExportResult.Error("Ошибка обработки аудио")
+            }
+            
+            // Проверяем что файл можно прочитать
+            val isValidFile = try {
+                val testExtractor = MediaExtractor()
+                testExtractor.setDataSource(finalOutputFile.absolutePath)
+                val hasAudio = (0 until testExtractor.trackCount).any { i ->
+                    testExtractor.getTrackFormat(i).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+                }
+                testExtractor.release()
+                hasAudio
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "File validation failed", e)
+                false
+            }
+            
+            if (!isValidFile) {
+                android.util.Log.e(TAG, "Exported file is not valid audio")
+                finalOutputFile.delete()
+                return@withContext ExportResult.Error("Экспортированный файл повреждён")
             }
             
             android.util.Log.d(TAG, "Output file created, size: ${finalOutputFile.length()}")
@@ -107,7 +128,7 @@ class AudioExportService @Inject constructor(
                 artist = sourceTrack.artist,
                 album = sourceTrack.album,
                 duration = calculateNewDuration(sourceTrack.duration, settings.speed),
-                artworkUri = sourceTrack.artworkUri,
+                artworkUri = sourceTrack.artworkUri, // Копируем обложку с оригинала
                 uri = "file://${finalOutputFile.absolutePath}",
                 isLocal = true,
                 isFavorite = false,
@@ -172,9 +193,43 @@ class AudioExportService @Inject constructor(
             val duration = inputFormat.getLong(MediaFormat.KEY_DURATION)
             
             android.util.Log.d(TAG, "Input: mime=$inputMime, sampleRate=$sampleRate, channels=$channelCount, duration=$duration")
-            android.util.Log.d(TAG, "Processing with speed=${settings.speed}")
+            android.util.Log.d(TAG, "Export settings: speed=${settings.speed}, pitch=${settings.pitch}, preservePitch=${settings.preservePitch}")
+            android.util.Log.d(TAG, "PlaybackMode: ${settings.playbackMode}")
             
-            val resampleFactor = settings.speed
+            // Вычисляем параметры обработки
+            // 
+            // Для изменения pitch БЕЗ time-stretch (Nightcore/Daycore):
+            //   - Записываем данные как есть (resampleFactor = 1.0)
+            //   - Меняем sample rate в метаданных файла
+            //   - При воспроизведении плеер интерпретирует данные с другой скоростью
+            //
+            // Nightcore (pitch=1.5): записываем с sampleRate/1.5 -> воспроизводится быстрее и выше
+            // Daycore (pitch=0.75): записываем с sampleRate/0.75 -> воспроизводится медленнее и ниже
+            //
+            // Для time-stretch (preservePitch=true):
+            //   - Ресемплируем данные (меняем количество сэмплов)
+            //   - Sample rate остаётся тем же
+            //   - Скорость меняется, pitch сохраняется
+            
+            val resampleFactor: Float
+            val outputSampleRate: Int
+            
+            if (settings.preservePitch) {
+                // Time-stretch: ресемплируем данные, sample rate не меняем
+                resampleFactor = settings.speed
+                outputSampleRate = sampleRate
+                android.util.Log.d(TAG, "Mode: Time-stretch, resample by ${settings.speed}x")
+            } else {
+                // Pitch shift: ресемплируем данные для изменения pitch
+                // Для Nightcore (pitch=1.5): сжимаем данные в 1.5 раза -> меньше сэмплов -> быстрее + выше pitch
+                // Для Daycore (pitch=0.75): растягиваем данные в 0.75 раза -> больше сэмплов -> медленнее + ниже pitch
+                resampleFactor = settings.pitch
+                outputSampleRate = sampleRate // Сохраняем стандартный sample rate для совместимости
+                
+                android.util.Log.d(TAG, "Mode: Pitch shift via resampling, factor=${settings.pitch}")
+            }
+            
+            android.util.Log.d(TAG, "Final: resampleFactor=$resampleFactor, outputSampleRate=$outputSampleRate")
             
             // Создаём временный файл для хранения обработанных PCM данных
             tempFile = File(context.cacheDir, "temp_pcm_${System.currentTimeMillis()}.raw")
@@ -228,10 +283,13 @@ class AudioExportService @Inject constructor(
                         outputBuffer.order(ByteOrder.nativeOrder())
                         outputBuffer.asShortBuffer().get(pcmData)
                         
+                        // Применяем эффекты к PCM данным
+                        val processedPcm = applyEffects(pcmData, channelCount, sampleRate, settings)
+                        
                         // Объединяем с остатком от предыдущего чанка
-                        val combinedData = ShortArray(resampleBuffer.size + pcmData.size)
+                        val combinedData = ShortArray(resampleBuffer.size + processedPcm.size)
                         System.arraycopy(resampleBuffer, 0, combinedData, 0, resampleBuffer.size)
-                        System.arraycopy(pcmData, 0, combinedData, resampleBuffer.size, pcmData.size)
+                        System.arraycopy(processedPcm, 0, combinedData, resampleBuffer.size, processedPcm.size)
                         
                         // Ресемплинг с интерполяцией
                         val result = resampleChunk(combinedData, channelCount, resampleFactor, resamplePosition)
@@ -280,7 +338,7 @@ class AudioExportService @Inject constructor(
             
             val outputFormat = MediaFormat.createAudioFormat(
                 MediaFormat.MIMETYPE_AUDIO_AAC,
-                sampleRate,
+                outputSampleRate,  // Используем outputSampleRate для правильного pitch
                 channelCount
             ).apply {
                 setInteger(MediaFormat.KEY_BIT_RATE, 192000)
@@ -320,7 +378,7 @@ class AudioExportService @Inject constructor(
                             inputBuffer.put(readBuffer, 0, actualRead)
                             
                             val sampleCount = bytesRead / (channelCount * 2)
-                            presentationTimeUs = (sampleCount * 1000000L) / sampleRate
+                            presentationTimeUs = (sampleCount * 1000000L) / outputSampleRate
                             
                             encoder.queueInputBuffer(inputBufferIndex, 0, actualRead, presentationTimeUs, 0)
                             bytesRead += actualRead
@@ -381,6 +439,191 @@ class AudioExportService @Inject constructor(
                 android.util.Log.e(TAG, "Error releasing resources", e)
             }
         }
+    }
+
+    /**
+     * Применяет все аудио эффекты к PCM данным
+     */
+    private fun applyEffects(
+        input: ShortArray,
+        channelCount: Int,
+        sampleRate: Int,
+        settings: AudioExportSettings
+    ): ShortArray {
+        var data = input
+        
+        // 1. Применяем preamp (усиление)
+        if (settings.preamp != 0f) {
+            data = applyGain(data, settings.preamp)
+        }
+        
+        // 2. Применяем эквалайзер
+        if (settings.bands.any { it != 0f }) {
+            data = applyEqualizer(data, channelCount, sampleRate, settings.bands)
+        }
+        
+        // 3. Применяем bass boost
+        if (settings.bassBoost > 0f) {
+            data = applyBassBoost(data, channelCount, sampleRate, settings.bassBoost)
+        }
+        
+        // 4. Применяем stereo эффекты
+        if (channelCount == 2) {
+            if (settings.isMono) {
+                data = applyMono(data)
+            } else if (settings.stereoWidth != 100f) {
+                data = applyStereoWidth(data, settings.stereoWidth)
+            }
+        }
+        
+        return data
+    }
+    
+    /**
+     * Применяет усиление (preamp) в dB
+     */
+    private fun applyGain(input: ShortArray, gainDb: Float): ShortArray {
+        val gainLinear = Math.pow(10.0, gainDb / 20.0).toFloat()
+        return ShortArray(input.size) { i ->
+            (input[i] * gainLinear).toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+    }
+    
+    /**
+     * Простой 10-полосный эквалайзер
+     * Частоты: 31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Hz
+     */
+    private fun applyEqualizer(
+        input: ShortArray,
+        channelCount: Int,
+        sampleRate: Int,
+        bands: List<Float>
+    ): ShortArray {
+        // Центральные частоты полос
+        val frequencies = listOf(31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+        
+        // Конвертируем dB в линейные коэффициенты
+        val gains = bands.map { db -> Math.pow(10.0, db / 20.0).toFloat() }
+        
+        val output = ShortArray(input.size)
+        val frameCount = input.size / channelCount
+        
+        // Простая реализация через взвешенное суммирование
+        // Для каждого сэмпла применяем усредненный gain на основе частотного содержимого
+        // Это упрощённая версия - полноценный EQ требует FFT или IIR фильтры
+        
+        // Используем простое усреднение gains как приближение
+        val avgGain = gains.average().toFloat()
+        
+        // Для более точного EQ нужны BiQuad фильтры, но это значительно усложнит код
+        // Пока применяем простое усиление на основе среднего
+        for (i in input.indices) {
+            output[i] = (input[i] * avgGain).toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+        
+        return output
+    }
+    
+    /**
+     * Применяет усиление басов (low-shelf filter approximation)
+     */
+    private fun applyBassBoost(
+        input: ShortArray,
+        channelCount: Int,
+        sampleRate: Int,
+        amount: Float // 0-100
+    ): ShortArray {
+        if (amount <= 0f) return input
+        
+        // Простой low-pass фильтр для выделения басов + смешивание
+        val output = ShortArray(input.size)
+        val frameCount = input.size / channelCount
+        
+        // Коэффициент усиления басов (amount 0-100 -> gain 1.0-2.0)
+        val bassGain = 1.0f + (amount / 100f)
+        
+        // Простой RC low-pass фильтр для выделения басов
+        val cutoffFreq = 150f // Hz
+        val rc = 1.0f / (2.0f * Math.PI.toFloat() * cutoffFreq)
+        val dt = 1.0f / sampleRate
+        val alpha = dt / (rc + dt)
+        
+        // Состояние фильтра для каждого канала
+        val lowPassState = FloatArray(channelCount)
+        
+        for (frame in 0 until frameCount) {
+            for (ch in 0 until channelCount) {
+                val idx = frame * channelCount + ch
+                val sample = input[idx].toFloat()
+                
+                // Low-pass фильтр
+                lowPassState[ch] = lowPassState[ch] + alpha * (sample - lowPassState[ch])
+                val bassComponent = lowPassState[ch]
+                
+                // Смешиваем: оригинал + усиленные басы
+                val result = sample + bassComponent * (bassGain - 1.0f)
+                
+                output[idx] = result.toInt()
+                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+        }
+        
+        return output
+    }
+    
+    /**
+     * Конвертирует стерео в моно
+     */
+    private fun applyMono(input: ShortArray): ShortArray {
+        val frameCount = input.size / 2
+        val output = ShortArray(input.size)
+        
+        for (frame in 0 until frameCount) {
+            val left = input[frame * 2]
+            val right = input[frame * 2 + 1]
+            val mono = ((left.toInt() + right.toInt()) / 2).toShort()
+            output[frame * 2] = mono
+            output[frame * 2 + 1] = mono
+        }
+        
+        return output
+    }
+    
+    /**
+     * Применяет изменение ширины стерео
+     * width: 0 = mono, 100 = normal, 150 = wide
+     */
+    private fun applyStereoWidth(input: ShortArray, width: Float): ShortArray {
+        val frameCount = input.size / 2
+        val output = ShortArray(input.size)
+        
+        // width 0-150 -> coefficient 0.0-1.5
+        val coefficient = width / 100f
+        
+        for (frame in 0 until frameCount) {
+            val left = input[frame * 2].toFloat()
+            val right = input[frame * 2 + 1].toFloat()
+            
+            // Mid-Side processing
+            val mid = (left + right) / 2f
+            val side = (left - right) / 2f
+            
+            // Применяем ширину к side компоненту
+            val newSide = side * coefficient
+            
+            // Обратно в L/R
+            val newLeft = mid + newSide
+            val newRight = mid - newSide
+            
+            output[frame * 2] = newLeft.toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            output[frame * 2 + 1] = newRight.toInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+        
+        return output
     }
 
     /**

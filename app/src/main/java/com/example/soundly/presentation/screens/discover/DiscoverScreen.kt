@@ -1,5 +1,6 @@
 package com.example.soundly.presentation.screens.discover
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,16 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.soundly.presentation.theme.backgroundGradient
 
 @Composable
 fun DiscoverScreen(navController: NavController) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(backgroundGradient())
             .statusBarsPadding(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -28,18 +32,19 @@ fun DiscoverScreen(navController: NavController) {
                 text = "Открыть",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
+                color = Color.White,
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
         item { Spacer(modifier = Modifier.height(60.dp)) }
 
-        // AI Icon
+        // AI Icon with glass effect
         item {
             Surface(
                 modifier = Modifier.size(120.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = Color(0x40FFFFFF)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -60,7 +65,8 @@ fun DiscoverScreen(navController: NavController) {
                 text = "Персональные рекомендации",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = Color.White
             )
         }
 
@@ -71,7 +77,7 @@ fun DiscoverScreen(navController: NavController) {
             Text(
                 text = "Скоро здесь появятся умные рекомендации\nна основе вашей истории прослушивания",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
         }
@@ -93,7 +99,7 @@ fun DiscoverScreen(navController: NavController) {
         item {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = Color(0x30FFFFFF)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
@@ -101,7 +107,12 @@ fun DiscoverScreen(navController: NavController) {
                 ) {
                     Text(text = "🚀", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Скоро", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = "Скоро", 
+                        style = MaterialTheme.typography.labelLarge, 
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -120,6 +131,10 @@ fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Stri
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = text, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = text, 
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
+        )
     }
 }

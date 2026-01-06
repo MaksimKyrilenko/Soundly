@@ -13,7 +13,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +21,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.soundly.data.local.PreferencesManager
 import com.example.soundly.presentation.SoundlyAppContent
 import com.example.soundly.presentation.screens.splash.SplashScreen
+import com.example.soundly.presentation.theme.ColorPalette
 import com.example.soundly.presentation.theme.SoundlyTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -49,12 +49,14 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             val isDarkTheme by preferencesManager.isDarkTheme.collectAsState(initial = true)
+            val colorPaletteId by preferencesManager.colorPalette.collectAsState(initial = "purple")
+            val colorPalette = ColorPalette.fromId(colorPaletteId)
             var showSplash by remember { mutableStateOf(true) }
             
-            SoundlyTheme(darkTheme = isDarkTheme) {
+            SoundlyTheme(darkTheme = isDarkTheme, colorPalette = colorPalette) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = androidx.compose.ui.graphics.Color.Transparent
                 ) {
                     // Custom animated splash screen
                     AnimatedVisibility(

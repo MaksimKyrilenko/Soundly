@@ -325,6 +325,17 @@ class PlayerController @Inject constructor(
     private fun updatePlayerState(update: (PlayerState) -> PlayerState) {
         _playerState.value = update(_playerState.value)
     }
+    
+    /**
+     * Обновляет состояние избранного для текущего трека
+     */
+    fun updateCurrentTrackFavorite(isFavorite: Boolean) {
+        updatePlayerState { state ->
+            state.currentTrack?.let { track ->
+                state.copy(currentTrack = track.copy(isFavorite = isFavorite))
+            } ?: state
+        }
+    }
 
     fun release() {
         mainHandler.removeCallbacks(positionUpdateRunnable)

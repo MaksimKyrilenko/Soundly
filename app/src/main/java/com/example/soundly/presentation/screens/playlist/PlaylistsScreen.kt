@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -63,6 +65,7 @@ fun PlaylistsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
+    val palette = LocalColorPalette.current
     
     var showCreateDialog by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
@@ -74,7 +77,6 @@ fun PlaylistsScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     
-    // Сортировка и фильтрация плейлистов
     val sortedPlaylists = remember(uiState.playlists, sortOption, searchQuery) {
         val filtered = if (searchQuery.isBlank()) uiState.playlists
         else uiState.playlists.filter { 
@@ -91,54 +93,56 @@ fun PlaylistsScreen(
         }
     }
     
-    // Статистика
     val totalTracks = uiState.playlists.sumOf { it.trackIds.size }
     val totalPlaylists = uiState.playlists.size
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(backgroundGradient())
             .statusBarsPadding()
     ) {
-        // Header с поиском
         AnimatedContent(
             targetState = isSearchActive,
-            transitionSpec = {
-                fadeIn(tween(200)) togetherWith fadeOut(tween(200))
-            },
+            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
             label = "header"
         ) { searching ->
             if (searching) {
-                // Поисковая строка
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onSearch = { },
-                    active = false,
-                    onActiveChange = { },
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Поиск плейлистов...") },
-                    leadingIcon = {
-                        IconButton(onClick = { 
-                            isSearchActive = false
-                            searchQuery = ""
-                        }) {
-                            Icon(Icons.Default.ArrowBack, "Назад")
-                        }
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, "Очистить")
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0x30FFFFFF)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Поиск плейлистов...", color = Color.White.copy(alpha = 0.6f)) },
+                        leadingIcon = {
+                            IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
+                                Icon(Icons.Default.ArrowBack, "Назад", tint = Color.White)
                             }
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp)
-                ) { }
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, "Очистить", tint = Color.White)
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                }
             } else {
-                // Обычный заголовок
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,18 +154,19 @@ fun PlaylistsScreen(
                         Text(
                             text = "Плейлисты",
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                         Text(
                             text = "$totalPlaylists плейлистов • $totalTracks треков",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.7f)
                         )
                     }
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(onClick = { isSearchActive = true }) {
-                            Icon(Icons.Default.Search, "Поиск")
+                            Icon(Icons.Default.Search, "Поиск", tint = Color.White)
                         }
                         IconButton(onClick = { 
                             viewMode = if (viewMode == PlaylistViewMode.LIST) 
@@ -170,12 +175,13 @@ fun PlaylistsScreen(
                             Icon(
                                 if (viewMode == PlaylistViewMode.LIST) Icons.Default.GridView 
                                 else Icons.Default.ViewList,
-                                "Вид"
+                                "Вид",
+                                tint = Color.White
                             )
                         }
                         Box {
                             IconButton(onClick = { showSortMenu = true }) {
-                                Icon(Icons.AutoMirrored.Filled.Sort, "Сортировка")
+                                Icon(Icons.AutoMirrored.Filled.Sort, "Сортировка", tint = Color.White)
                             }
                             DropdownMenu(
                                 expanded = showSortMenu,
@@ -184,18 +190,11 @@ fun PlaylistsScreen(
                                 PlaylistSortOption.entries.forEach { option ->
                                     DropdownMenuItem(
                                         text = { Text(option.label) },
-                                        onClick = { 
-                                            sortOption = option
-                                            showSortMenu = false
-                                        },
+                                        onClick = { sortOption = option; showSortMenu = false },
                                         leadingIcon = { Icon(option.icon, null) },
                                         trailingIcon = {
                                             if (sortOption == option) {
-                                                Icon(
-                                                    Icons.Default.Check,
-                                                    null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
+                                                Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     )
@@ -207,41 +206,28 @@ fun PlaylistsScreen(
             }
         }
         
-        // Быстрые действия
         QuickActionsRow(
             onCreateClick = { showCreateDialog = true },
             onFavoritesClick = { navController.navigate(Screen.Favorites.route) },
-            onRecentClick = { /* Можно добавить экран недавних */ }
+            onRecentClick = { }
         )
         
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Контент
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (sortedPlaylists.isEmpty()) {
             if (searchQuery.isNotEmpty()) {
-                // Ничего не найдено
-                EmptySearchState(
-                    query = searchQuery,
-                    onClear = { searchQuery = "" }
-                )
+                EmptySearchState(query = searchQuery, onClear = { searchQuery = "" })
             } else {
-                // Нет плейлистов
-                EmptyPlaylistsState(
-                    modifier = Modifier.fillMaxSize(),
-                    onCreateClick = { showCreateDialog = true }
-                )
+                EmptyPlaylistsState(modifier = Modifier.fillMaxSize(), onCreateClick = { showCreateDialog = true })
             }
         } else {
-            // Список/сетка плейлистов
             AnimatedContent(
                 targetState = viewMode,
-                transitionSpec = {
-                    fadeIn(tween(200)) togetherWith fadeOut(tween(200))
-                },
+                transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
                 label = "viewMode"
             ) { mode ->
                 when (mode) {
@@ -251,23 +237,12 @@ fun PlaylistsScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(
-                                items = sortedPlaylists,
-                                key = { it.id }
-                            ) { playlist ->
+                            items(items = sortedPlaylists, key = { it.id }) { playlist ->
                                 PlaylistListItem(
                                     playlist = playlist,
-                                    onClick = { 
-                                        navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id))
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedPlaylistForMenu = playlist
-                                    },
-                                    onPlayClick = {
-                                        viewModel.loadPlaylistDetail(playlist.id)
-                                        viewModel.playPlaylist()
-                                    },
+                                    onClick = { navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id)) },
+                                    onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedPlaylistForMenu = playlist },
+                                    onPlayClick = { viewModel.loadPlaylistDetail(playlist.id); viewModel.playPlaylist() },
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -282,19 +257,11 @@ fun PlaylistsScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(
-                                items = sortedPlaylists,
-                                key = { it.id }
-                            ) { playlist ->
+                            items(items = sortedPlaylists, key = { it.id }) { playlist ->
                                 PlaylistGridItem(
                                     playlist = playlist,
-                                    onClick = { 
-                                        navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id))
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedPlaylistForMenu = playlist
-                                    },
+                                    onClick = { navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id)) },
+                                    onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedPlaylistForMenu = playlist },
                                     modifier = Modifier.animateItem()
                                 )
                             }
@@ -307,16 +274,12 @@ fun PlaylistsScreen(
         }
     }
     
-    // FAB для создания плейлиста
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomEnd
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
         ExtendedFloatingActionButton(
             onClick = { showCreateDialog = true },
             modifier = Modifier.padding(end = 16.dp, bottom = 100.dp),
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+            contentColor = Color.White
         ) {
             Icon(Icons.Default.Add, "Создать")
             Spacer(Modifier.width(8.dp))
@@ -324,7 +287,6 @@ fun PlaylistsScreen(
         }
     }
 
-    // Диалог создания плейлиста
     if (showCreateDialog) {
         CreatePlaylistDialog(
             availableTracks = uiState.availableTracks,
@@ -336,568 +298,244 @@ fun PlaylistsScreen(
         )
     }
     
-    // Контекстное меню плейлиста
     selectedPlaylistForMenu?.let { playlist ->
         PlaylistContextMenu(
             playlist = playlist,
             onDismiss = { selectedPlaylistForMenu = null },
-            onEdit = { 
-                showEditDialog = true
-            },
-            onDelete = {
-                showDeleteConfirmDialog = true
-            },
-            onShare = {
-                // TODO: Реализовать шаринг
-                selectedPlaylistForMenu = null
-            },
+            onEdit = { showEditDialog = true },
+            onDelete = { showDeleteConfirmDialog = true },
+            onShare = { selectedPlaylistForMenu = null },
             onDuplicate = {
-                viewModel.createPlaylistWithTracks(
-                    "${playlist.name} (копия)",
-                    playlist.description,
-                    playlist.trackIds,
-                    playlist.coverUri
-                )
+                viewModel.createPlaylistWithTracks("${playlist.name} (копия)", playlist.description, playlist.trackIds, playlist.coverUri)
                 selectedPlaylistForMenu = null
             }
         )
     }
     
-    // Диалог подтверждения удаления
     if (showDeleteConfirmDialog && selectedPlaylistForMenu != null) {
         AlertDialog(
-            onDismissRequest = { 
-                showDeleteConfirmDialog = false
-                selectedPlaylistForMenu = null
-            },
+            onDismissRequest = { showDeleteConfirmDialog = false; selectedPlaylistForMenu = null },
             icon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Удалить плейлист?") },
-            text = { 
-                Text("Плейлист \"${selectedPlaylistForMenu?.name}\" будет удалён. Это действие нельзя отменить.")
-            },
+            title = { Text("Удалить плейлист?", color = Color.White) },
+            text = { Text("Плейлист \"${selectedPlaylistForMenu?.name}\" будет удалён.", color = Color.White.copy(alpha = 0.7f)) },
             confirmButton = {
                 Button(
-                    onClick = {
-                        selectedPlaylistForMenu?.let { viewModel.deletePlaylist(it.id) }
-                        showDeleteConfirmDialog = false
-                        selectedPlaylistForMenu = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Удалить")
-                }
+                    onClick = { selectedPlaylistForMenu?.let { viewModel.deletePlaylist(it.id) }; showDeleteConfirmDialog = false; selectedPlaylistForMenu = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Удалить", color = Color.White) }
             },
-            dismissButton = {
-                TextButton(onClick = { 
-                    showDeleteConfirmDialog = false
-                    selectedPlaylistForMenu = null
-                }) {
-                    Text("Отмена")
-                }
-            }
+            dismissButton = { TextButton(onClick = { showDeleteConfirmDialog = false; selectedPlaylistForMenu = null }) { Text("Отмена") } },
+            containerColor = palette.cardMid
         )
     }
     
-    // Диалог редактирования
     if (showEditDialog && selectedPlaylistForMenu != null) {
         EditPlaylistDialog(
             playlist = selectedPlaylistForMenu!!,
-            onDismiss = { 
-                showEditDialog = false
-                selectedPlaylistForMenu = null
-            },
+            onDismiss = { showEditDialog = false; selectedPlaylistForMenu = null },
             onSave = { name, description, coverUri ->
-                viewModel.updatePlaylistInfo(
-                    selectedPlaylistForMenu!!.id,
-                    name,
-                    description,
-                    coverUri
-                )
-                showEditDialog = false
-                selectedPlaylistForMenu = null
+                viewModel.updatePlaylistInfo(selectedPlaylistForMenu!!.id, name, description, coverUri)
+                showEditDialog = false; selectedPlaylistForMenu = null
             }
         )
     }
 }
 
-
 @Composable
-fun QuickActionsRow(
-    onCreateClick: () -> Unit,
-    onFavoritesClick: () -> Unit,
-    onRecentClick: () -> Unit
-) {
+fun QuickActionsRow(onCreateClick: () -> Unit, onFavoritesClick: () -> Unit, onRecentClick: () -> Unit) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            QuickActionChip(
-                icon = Icons.Default.Add,
-                label = "Создать",
-                onClick = onCreateClick,
-                isPrimary = true
-            )
-        }
-        item {
-            QuickActionChip(
-                icon = Icons.Default.Favorite,
-                label = "Избранное",
-                onClick = onFavoritesClick
-            )
-        }
-        item {
-            QuickActionChip(
-                icon = Icons.Default.History,
-                label = "Недавние",
-                onClick = onRecentClick
-            )
-        }
+        item { QuickActionChip(icon = Icons.Default.Add, label = "Создать", onClick = onCreateClick, isPrimary = true) }
+        item { QuickActionChip(icon = Icons.Default.Favorite, label = "Избранное", onClick = onFavoritesClick) }
+        item { QuickActionChip(icon = Icons.Default.History, label = "Недавние", onClick = onRecentClick) }
     }
 }
 
 @Composable
-fun QuickActionChip(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    isPrimary: Boolean = false
-) {
+fun QuickActionChip(icon: ImageVector, label: String, onClick: () -> Unit, isPrimary: Boolean = false) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = if (isPrimary) MaterialTheme.colorScheme.primaryContainer 
-               else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (isPrimary) MaterialTheme.colorScheme.onPrimaryContainer
-                      else MaterialTheme.colorScheme.onSurfaceVariant
+        color = if (isPrimary) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color(0x30FFFFFF)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, modifier = Modifier.size(18.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Icon(icon, null, modifier = Modifier.size(18.dp), tint = if (isPrimary) MaterialTheme.colorScheme.primary else Color.White)
+            Text(label, style = MaterialTheme.typography.labelLarge, color = if (isPrimary) MaterialTheme.colorScheme.primary else Color.White)
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PlaylistListItem(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onPlayClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
+fun PlaylistListItem(playlist: Playlist, onClick: () -> Unit, onLongClick: () -> Unit, onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = LocalColorPalette.current
+    Surface(
+        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        color = Color.Transparent
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Обложка
-            PlaylistCover(
-                coverUri = playlist.coverUri,
-                size = 64.dp
-            )
-            
-            // Информация
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
-            ) {
-                Text(
-                    text = playlist.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            palette.cardDark,
+                            palette.cardMid,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 )
+        ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            PlaylistCover(coverUri = playlist.coverUri, size = 64.dp)
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(text = playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.White)
                 if (playlist.description.isNotBlank()) {
-                    Text(
-                        text = playlist.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(text = playlist.description, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.MusicNote,
-                        null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${playlist.trackIds.size} треков",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (playlist.isSynced) {
-                        Icon(
-                            Icons.Default.Cloud,
-                            "Синхронизировано",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.6f))
+                    Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                    if (playlist.isSynced) { Icon(Icons.Default.Cloud, "Синхронизировано", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
                 }
             }
-            
-            // Кнопка воспроизведения
             if (playlist.trackIds.isNotEmpty()) {
-                FilledIconButton(
-                    onClick = onPlayClick,
-                    modifier = Modifier.size(40.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        "Воспроизвести",
-                        modifier = Modifier.size(24.dp)
-                    )
+                Surface(onClick = onPlayClick, modifier = Modifier.size(40.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.PlayArrow, "Воспроизвести", modifier = Modifier.size(24.dp), tint = Color.White) }
                 }
             }
+        }
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PlaylistGridItem(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
+fun PlaylistGridItem(playlist: Playlist, onClick: () -> Unit, onLongClick: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = LocalColorPalette.current
+    Surface(
+        modifier = modifier.fillMaxWidth().aspectRatio(0.85f).combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        color = Color.Transparent
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
         ) {
-            // Обложка
-            PlaylistCover(
-                coverUri = playlist.coverUri,
-                size = 100.dp,
-                modifier = Modifier.weight(1f)
-            )
-            
+        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            PlaylistCover(coverUri = playlist.coverUri, size = 100.dp, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(12.dp))
-            
-            // Название
-            Text(
-                text = playlist.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            
-            // Количество треков
-            Text(
-                text = "${playlist.trackIds.size} треков",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = playlist.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, color = Color.White)
+            Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+        }
         }
     }
 }
 
 @Composable
-fun PlaylistCover(
-    coverUri: String?,
-    size: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.size(size),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
-    ) {
+fun PlaylistCover(coverUri: String?, size: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier.size(size), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)) {
         Box(contentAlignment = Alignment.Center) {
             when {
-                coverUri?.startsWith("emoji:") == true -> {
-                    Text(
-                        coverUri.removePrefix("emoji:"),
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                }
-                coverUri != null -> {
-                    AsyncImage(
-                        model = coverUri,
-                        contentDescription = "Обложка плейлиста",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                else -> {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(size / 2)
-                    )
-                }
+                coverUri?.startsWith("emoji:") == true -> Text(coverUri.removePrefix("emoji:"), style = MaterialTheme.typography.headlineLarge)
+                coverUri != null -> AsyncImage(model = coverUri, contentDescription = "Обложка", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                else -> Icon(imageVector = Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(size / 2))
             }
         }
     }
 }
 
 @Composable
-fun EmptyPlaylistsState(
-    modifier: Modifier = Modifier,
-    onCreateClick: () -> Unit
-) {
+fun EmptyPlaylistsState(modifier: Modifier = Modifier, onCreateClick: () -> Unit) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            // Анимированная иконка
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
             val infiniteTransition = rememberInfiniteTransition(label = "empty")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1000),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "scale"
-            )
-            
-            Surface(
-                modifier = Modifier
-                    .size(120.dp)
-                    .scale(scale),
-                shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.PlaylistPlay,
-                        contentDescription = null,
-                        modifier = Modifier.size(56.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+            val scale by infiniteTransition.animateFloat(initialValue = 1f, targetValue = 1.1f, animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse), label = "scale")
+            Surface(modifier = Modifier.size(120.dp).scale(scale), shape = RoundedCornerShape(32.dp), color = Color(0x40FFFFFF)) {
+                Box(contentAlignment = Alignment.Center) { Icon(imageVector = Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary) }
             }
-            
             Spacer(modifier = Modifier.height(32.dp))
-            
-            Text(
-                text = "Нет плейлистов",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            
+            Text(text = "Нет плейлистов", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Создайте свой первый плейлист\nи добавьте любимые треки",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            
+            Text(text = "Создайте свой первый плейлист\nи добавьте любимые треки", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(32.dp))
-            
-            Button(
-                onClick = onCreateClick,
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
+            Button(onClick = onCreateClick, shape = RoundedCornerShape(24.dp), contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Создать плейлист", style = MaterialTheme.typography.titleMedium)
+                Text("Создать плейлист", style = MaterialTheme.typography.titleMedium, color = Color.White)
             }
         }
     }
 }
 
 @Composable
-fun EmptySearchState(
-    query: String,
-    onClear: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                Icons.Default.SearchOff,
-                null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+fun EmptySearchState(query: String, onClear: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            Icon(Icons.Default.SearchOff, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Ничего не найдено",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                "По запросу \"$query\"",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("Ничего не найдено", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = Color.White)
+            Text("По запросу \"$query\"", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
             Spacer(modifier = Modifier.height(16.dp))
-            TextButton(onClick = onClear) {
-                Text("Очистить поиск")
-            }
+            TextButton(onClick = onClear) { Text("Очистить поиск") }
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistContextMenu(
-    playlist: Playlist,
-    onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onShare: () -> Unit,
-    onDuplicate: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            // Заголовок
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+fun PlaylistContextMenu(playlist: Playlist, onDismiss: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onShare: () -> Unit, onDuplicate: () -> Unit) {
+    val palette = LocalColorPalette.current
+    ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), containerColor = palette.cardMid) {
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 PlaylistCover(coverUri = playlist.coverUri, size = 56.dp)
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        playlist.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        "${playlist.trackIds.size} треков",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.White)
+                    Text("${playlist.trackIds.size} треков", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
                 }
             }
-            
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            
-            // Действия
-            ContextMenuItem(
-                icon = Icons.Default.Edit,
-                title = "Редактировать",
-                onClick = { onDismiss(); onEdit() }
-            )
-            ContextMenuItem(
-                icon = Icons.Default.ContentCopy,
-                title = "Дублировать",
-                onClick = { onDismiss(); onDuplicate() }
-            )
-            ContextMenuItem(
-                icon = Icons.Default.Share,
-                title = "Поделиться",
-                onClick = { onDismiss(); onShare() }
-            )
-            ContextMenuItem(
-                icon = Icons.Default.Delete,
-                title = "Удалить",
-                onClick = { onDismiss(); onDelete() },
-                isDestructive = true
-            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.White.copy(alpha = 0.1f))
+            ContextMenuItem(icon = Icons.Default.Edit, title = "Редактировать", onClick = { onDismiss(); onEdit() })
+            ContextMenuItem(icon = Icons.Default.ContentCopy, title = "Дублировать", onClick = { onDismiss(); onDuplicate() })
+            ContextMenuItem(icon = Icons.Default.Share, title = "Поделиться", onClick = { onDismiss(); onShare() })
+            ContextMenuItem(icon = Icons.Default.Delete, title = "Удалить", onClick = { onDismiss(); onDelete() }, isDestructive = true)
         }
     }
 }
 
 @Composable
-fun ContextMenuItem(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    isDestructive: Boolean = false
-) {
+fun ContextMenuItem(icon: ImageVector, title: String, onClick: () -> Unit, isDestructive: Boolean = false) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = {
-            Text(
-                title,
-                color = if (isDestructive) MaterialTheme.colorScheme.error 
-                       else MaterialTheme.colorScheme.onSurface
-            )
-        },
-        leadingContent = {
-            Icon(
-                icon,
-                null,
-                tint = if (isDestructive) MaterialTheme.colorScheme.error 
-                      else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        headlineContent = { Text(title, color = if (isDestructive) MaterialTheme.colorScheme.error else Color.White) },
+        leadingContent = { Icon(icon, null, tint = if (isDestructive) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.7f)) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
     )
 }
 
+
 @Composable
-fun CreatePlaylistDialog(
-    availableTracks: List<Track>,
-    onDismiss: () -> Unit,
-    onCreate: (String, String, List<String>, String?) -> Unit
-) {
+fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, onCreate: (String, String, List<String>, String?) -> Unit) {
     var step by remember { mutableIntStateOf(1) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -905,284 +543,119 @@ fun CreatePlaylistDialog(
     var selectedTrackIds by remember { mutableStateOf(setOf<String>()) }
     var searchQuery by remember { mutableStateOf("") }
     
-    val presetIcons = listOf(
-        "🎵", "🎶", "🎸", "🎹", "🎺", "🎻", 
-        "🥁", "🎤", "❤️", "⭐", "🔥", "💜",
-        "🌙", "☀️", "🌊", "🎧", "💿", "🎼"
-    )
+    val presetIcons = listOf("🎵", "🎶", "🎸", "🎹", "🎺", "🎻", "🥁", "🎤", "❤️", "⭐", "🔥", "💜", "🌙", "☀️", "🌊", "🎧", "💿", "🎼")
 
     if (step == 1) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { 
-                Text(
-                    "Новый плейлист",
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text("Новый плейлист", fontWeight = FontWeight.Bold, color = Color.White) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Превью иконки
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(100.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        Surface(modifier = Modifier.size(100.dp), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)) {
                             Box(contentAlignment = Alignment.Center) {
-                                if (selectedIcon != null) {
-                                    Text(
-                                        selectedIcon!!,
-                                        style = MaterialTheme.typography.displayMedium
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.QueueMusic,
-                                        null,
-                                        Modifier.size(48.dp),
-                                        MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                                if (selectedIcon != null) Text(selectedIcon!!, style = MaterialTheme.typography.displayMedium)
+                                else Icon(Icons.AutoMirrored.Filled.QueueMusic, null, Modifier.size(48.dp), MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
-                    
-                    // Выбор иконки
-                    Text(
-                        "Выберите иконку",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    // Сетка иконок
+                    Text("Выберите иконку", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (row in presetIcons.chunked(6)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                 row.forEach { icon ->
                                     Surface(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clickable { 
-                                                selectedIcon = if (selectedIcon == icon) null else icon 
-                                            },
+                                        modifier = Modifier.size(44.dp).clickable { selectedIcon = if (selectedIcon == icon) null else icon },
                                         shape = RoundedCornerShape(10.dp),
-                                        color = if (selectedIcon == icon) 
-                                            MaterialTheme.colorScheme.primaryContainer 
-                                        else Color.Transparent,
-                                        border = if (selectedIcon == icon) null 
-                                                else ButtonDefaults.outlinedButtonBorder
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(icon, style = MaterialTheme.typography.titleLarge)
-                                        }
-                                    }
+                                        color = if (selectedIcon == icon) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent,
+                                        border = if (selectedIcon == icon) null else ButtonDefaults.outlinedButtonBorder
+                                    ) { Box(contentAlignment = Alignment.Center) { Text(icon, style = MaterialTheme.typography.titleLarge) } }
                                 }
                             }
                         }
                     }
-                    
                     Spacer(modifier = Modifier.height(8.dp))
-                    
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Название плейлиста") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Icon(Icons.Default.Title, null) }
+                        value = name, onValueChange = { name = it }, label = { Text("Название плейлиста", color = Color.White.copy(alpha = 0.7f)) },
+                        singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Icon(Icons.Default.Title, null, tint = Color.White.copy(alpha = 0.7f)) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
                     )
-                    
                     OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Описание (необязательно)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Icon(Icons.Default.Description, null) },
-                        minLines = 2,
-                        maxLines = 3
+                        value = description, onValueChange = { description = it }, label = { Text("Описание (необязательно)", color = Color.White.copy(alpha = 0.7f)) },
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Icon(Icons.Default.Description, null, tint = Color.White.copy(alpha = 0.7f)) }, minLines = 2, maxLines = 3,
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
                     )
                 }
             },
-            confirmButton = {
-                Button(
-                    onClick = { step = 2 },
-                    enabled = name.isNotBlank(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Далее")
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowForward, null, Modifier.size(18.dp))
-                }
-            },
-            dismissButton = { 
-                TextButton(onClick = onDismiss) { 
-                    Text("Отмена") 
-                } 
-            },
-            shape = RoundedCornerShape(28.dp)
+            confirmButton = { Button(onClick = { step = 2 }, enabled = name.isNotBlank(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text("Далее", color = Color.White); Spacer(Modifier.width(4.dp)); Icon(Icons.Default.ArrowForward, null, Modifier.size(18.dp), tint = Color.White) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = LocalColorPalette.current.cardMid
         )
     } else {
-        // Шаг 2: Выбор треков
         TrackSelectionDialog(
-            tracks = availableTracks,
-            selectedTrackIds = selectedTrackIds,
-            onTrackToggle = { trackId ->
-                selectedTrackIds = if (trackId in selectedTrackIds) {
-                    selectedTrackIds - trackId
-                } else {
-                    selectedTrackIds + trackId
-                }
-            },
+            tracks = availableTracks, selectedTrackIds = selectedTrackIds,
+            onTrackToggle = { trackId -> selectedTrackIds = if (trackId in selectedTrackIds) selectedTrackIds - trackId else selectedTrackIds + trackId },
             onDismiss = { step = 1 },
-            onConfirm = { 
-                val coverUri = selectedIcon?.let { "emoji:$it" }
-                onCreate(name, description, selectedTrackIds.toList(), coverUri) 
-            },
-            title = "Добавить треки в \"$name\"",
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it }
+            onConfirm = { val coverUri = selectedIcon?.let { "emoji:$it" }; onCreate(name, description, selectedTrackIds.toList(), coverUri) },
+            title = "Добавить треки в \"$name\"", searchQuery = searchQuery, onSearchQueryChange = { searchQuery = it }
         )
     }
 }
 
 @Composable
-fun EditPlaylistDialog(
-    playlist: Playlist,
-    onDismiss: () -> Unit,
-    onSave: (String, String, String?) -> Unit
-) {
+fun EditPlaylistDialog(playlist: Playlist, onDismiss: () -> Unit, onSave: (String, String, String?) -> Unit) {
     var name by remember { mutableStateOf(playlist.name) }
     var description by remember { mutableStateOf(playlist.description) }
-    var selectedIcon by remember { 
-        mutableStateOf(playlist.coverUri?.removePrefix("emoji:")?.takeIf { 
-            playlist.coverUri?.startsWith("emoji:") == true 
-        })
-    }
-    
-    val presetIcons = listOf(
-        "🎵", "🎶", "🎸", "🎹", "🎺", "🎻", 
-        "🥁", "🎤", "❤️", "⭐", "🔥", "💜",
-        "🌙", "☀️", "🌊", "🎧", "💿", "🎼"
-    )
+    var selectedIcon by remember { mutableStateOf(playlist.coverUri?.removePrefix("emoji:")?.takeIf { playlist.coverUri?.startsWith("emoji:") == true }) }
+    val presetIcons = listOf("🎵", "🎶", "🎸", "🎹", "🎺", "🎻", "🥁", "🎤", "❤️", "⭐", "🔥", "💜", "🌙", "☀️", "🌊", "🎧", "💿", "🎼")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
-            Text("Редактировать плейлист", fontWeight = FontWeight.Bold)
-        },
+        title = { Text("Редактировать плейлист", fontWeight = FontWeight.Bold, color = Color.White) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Превью иконки
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Surface(
-                        modifier = Modifier.size(100.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Surface(modifier = Modifier.size(100.dp), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)) {
                         Box(contentAlignment = Alignment.Center) {
-                            if (selectedIcon != null) {
-                                Text(
-                                    selectedIcon!!,
-                                    style = MaterialTheme.typography.displayMedium
-                                )
-                            } else {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.QueueMusic,
-                                    null,
-                                    Modifier.size(48.dp),
-                                    MaterialTheme.colorScheme.primary
-                                )
-                            }
+                            if (selectedIcon != null) Text(selectedIcon!!, style = MaterialTheme.typography.displayMedium)
+                            else Icon(Icons.AutoMirrored.Filled.QueueMusic, null, Modifier.size(48.dp), MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
-                
-                // Выбор иконки
-                Text(
-                    "Иконка",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
+                Text("Иконка", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (row in presetIcons.chunked(6)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                             row.forEach { icon ->
                                 Surface(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clickable { 
-                                            selectedIcon = if (selectedIcon == icon) null else icon 
-                                        },
+                                    modifier = Modifier.size(44.dp).clickable { selectedIcon = if (selectedIcon == icon) null else icon },
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedIcon == icon) 
-                                        MaterialTheme.colorScheme.primaryContainer 
-                                    else Color.Transparent,
-                                    border = if (selectedIcon == icon) null 
-                                            else ButtonDefaults.outlinedButtonBorder
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(icon, style = MaterialTheme.typography.titleLarge)
-                                    }
-                                }
+                                    color = if (selectedIcon == icon) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent,
+                                    border = if (selectedIcon == icon) null else ButtonDefaults.outlinedButtonBorder
+                                ) { Box(contentAlignment = Alignment.Center) { Text(icon, style = MaterialTheme.typography.titleLarge) } }
                             }
                         }
                     }
                 }
-                
                 Spacer(modifier = Modifier.height(8.dp))
-                
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Название") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    value = name, onValueChange = { name = it }, label = { Text("Название", color = Color.White.copy(alpha = 0.7f)) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
                 )
-                
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Описание") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    minLines = 2,
-                    maxLines = 3
+                    value = description, onValueChange = { description = it }, label = { Text("Описание", color = Color.White.copy(alpha = 0.7f)) },
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), minLines = 2, maxLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
                 )
             }
         },
-        confirmButton = {
-            Button(
-                onClick = { 
-                    val coverUri = selectedIcon?.let { "emoji:$it" }
-                    onSave(name, description, coverUri)
-                },
-                enabled = name.isNotBlank(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Сохранить")
-            }
-        },
-        dismissButton = { 
-            TextButton(onClick = onDismiss) { 
-                Text("Отмена") 
-            } 
-        },
-        shape = RoundedCornerShape(28.dp)
+        confirmButton = { Button(onClick = { val coverUri = selectedIcon?.let { "emoji:$it" }; onSave(name, description, coverUri) }, enabled = name.isNotBlank(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) { Text("Сохранить", color = Color.White) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = LocalColorPalette.current.cardMid
     )
 }

@@ -1,5 +1,6 @@
 package com.example.soundly.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -22,6 +24,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.screens.home.formatDuration
+import com.example.soundly.presentation.theme.dialogGradient
 
 @Composable
 fun TrackSelectionDialog(
@@ -42,9 +45,14 @@ fun TrackSelectionDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.85f),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2355))
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dialogGradient())
+            ) {
                 // Header
                 Row(
                     modifier = Modifier
@@ -56,7 +64,8 @@ fun TrackSelectionDialog(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                     Text(
                         text = "Выбрано: ${selectedTrackIds.size}",
@@ -66,24 +75,36 @@ fun TrackSelectionDialog(
                 }
                 
                 // Search
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    placeholder = { Text("Поиск треков...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Очистить")
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0x30FFFFFF)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Поиск треков...", color = Color.White.copy(alpha = 0.6f)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.7f)) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { onSearchQueryChange("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Очистить", tint = Color.White.copy(alpha = 0.7f))
+                                }
                             }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -119,7 +140,10 @@ fun TrackSelectionDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        )
                     ) {
                         Text("Отмена")
                     }
@@ -127,9 +151,12 @@ fun TrackSelectionDialog(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = selectedTrackIds.isNotEmpty()
+                        enabled = selectedTrackIds.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Text("Добавить (${selectedTrackIds.size})")
+                        Text("Добавить (${selectedTrackIds.size})", color = Color.White)
                     }
                 }
             }
@@ -143,36 +170,25 @@ fun SelectableTrackItem(
     isSelected: Boolean,
     onToggle: () -> Unit
 ) {
-    ListItem(
+    Surface(
         modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onToggle),
-        colors = ListItemDefaults.colors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        headlineContent = {
-            Text(
-                text = track.title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
-            )
-        },
-        supportingContent = {
-            Text(
-                text = "${track.artist} • ${formatDuration(track.duration)}",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodySmall
-            )
-        },
-        leadingContent = {
+        color = if (isSelected) 
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        else Color(0x20FFFFFF),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = Color(0x30FFFFFF)
             ) {
                 AsyncImage(
                     model = track.artworkUri,
@@ -181,15 +197,35 @@ fun SelectableTrackItem(
                     contentScale = ContentScale.Crop
                 )
             }
-        },
-        trailingContent = {
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = track.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                    color = Color.White
+                )
+                Text(
+                    text = "${track.artist} • ${formatDuration(track.duration)}",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+            
             Checkbox(
                 checked = isSelected,
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.primary
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                    uncheckedColor = Color.White.copy(alpha = 0.5f),
+                    checkmarkColor = Color.White
                 )
             )
         }
-    )
+    }
 }

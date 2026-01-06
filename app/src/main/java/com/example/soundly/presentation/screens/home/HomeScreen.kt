@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
@@ -24,6 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.DarkCardGradient
+import com.example.soundly.presentation.theme.CardGlassPurple
+import com.example.soundly.presentation.theme.LocalColorPalette
+import com.example.soundly.presentation.theme.trackCardGradient
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -75,7 +81,6 @@ fun HomeScreen(
         }
         
         if (hasPermission) {
-            // Only load if not already loaded
             viewModel.initialLoadIfNeeded()
         } else {
             val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -90,73 +95,122 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(backgroundGradient())
             .statusBarsPadding()
     ) {
-        // Search bar
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = viewModel::onSearchQueryChange,
+        // Header
+        Text(
+            text = "Soundly",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        // Search bar with glass effect
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Поиск треков...") },
-            leadingIcon = { 
-                Icon(
-                    Icons.Outlined.Search, 
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                ) 
-            },
-            trailingIcon = {
-                if (uiState.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Очистить")
-                    }
-                }
-            },
-            singleLine = true,
             shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        )
-
-        // Tabs
-        TabRow(
-            selectedTabIndex = uiState.selectedTab,
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.primary
+            color = Color(0x30FFFFFF)
         ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = uiState.selectedTab == index,
-                    onClick = { viewModel.onTabSelected(index) },
-                    text = { 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (index == 2) {
-                                Icon(
-                                    imageVector = Icons.Default.Favorite,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = if (uiState.selectedTab == index) 
-                                        MaterialTheme.colorScheme.primary 
-                                    else 
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                            }
-                            Text(
-                                title,
-                                fontWeight = if (uiState.selectedTab == index) FontWeight.SemiBold else FontWeight.Normal
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = viewModel::onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { 
+                    Text(
+                        "Поиск треков...",
+                        color = Color.White.copy(alpha = 0.6f)
+                    ) 
+                },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Outlined.Search, 
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f)
+                    ) 
+                },
+                trailingIcon = {
+                    if (uiState.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                            Icon(
+                                Icons.Default.Clear, 
+                                contentDescription = "Очистить",
+                                tint = Color.White.copy(alpha = 0.7f)
                             )
                         }
-                    },
-                    selectedContentColor = MaterialTheme.colorScheme.primary,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
                 )
+            )
+        }
+
+        // Tabs with glass effect
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0x20FFFFFF)
+        ) {
+            TabRow(
+                selectedTabIndex = uiState.selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Color.White,
+                indicator = { tabPositions ->
+                    if (uiState.selectedTab < tabPositions.size) {
+                        Box(
+                            Modifier
+                                .tabIndicatorOffset(tabPositions[uiState.selectedTab])
+                                .height(3.dp)
+                                .padding(horizontal = 24.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                },
+                divider = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = uiState.selectedTab == index,
+                        onClick = { viewModel.onTabSelected(index) },
+                        text = { 
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (index == 2) {
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (uiState.selectedTab == index) 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            Color.White.copy(alpha = 0.6f)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+                                Text(
+                                    title,
+                                    fontWeight = if (uiState.selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (uiState.selectedTab == index) Color.White else Color.White.copy(alpha = 0.6f)
+                                )
+                            }
+                        },
+                        selectedContentColor = Color.White,
+                        unselectedContentColor = Color.White.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
 
@@ -168,10 +222,20 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val trackCount = when (uiState.selectedTab) {
+                1 -> uiState.popularTracks.size
+                2 -> uiState.favoriteTracks.size
+                else -> uiState.tracks.size
+            }
+            val label = when (uiState.selectedTab) {
+                1 -> "Топ: $trackCount треков"
+                2 -> "Избранное: $trackCount треков"
+                else -> "Найдено: $trackCount треков"
+            }
             Text(
-                text = "Найдено: ${uiState.tracks.size} треков",
+                text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
             TextButton(onClick = { viewModel.refreshTracks() }) {
                 Text(
@@ -188,6 +252,7 @@ fun HomeScreen(
             }
         } else {
             val displayTracks = when (uiState.selectedTab) {
+                1 -> uiState.popularTracks
                 2 -> uiState.favoriteTracks
                 else -> uiState.tracks
             }
@@ -195,6 +260,7 @@ fun HomeScreen(
             if (displayTracks.isEmpty() && !uiState.isRefreshing) {
                 EmptyState(
                     message = when (uiState.selectedTab) {
+                        1 -> "Нет прослушанных треков"
                         2 -> "Нет избранных треков"
                         else -> "Треки не найдены"
                     },
@@ -261,7 +327,6 @@ fun HomeScreen(
                 selectedTrackForPlaylist = null
             },
             onCreateNew = {
-                // Navigate to create playlist or show create dialog
                 showAddToPlaylistDialog = false
                 selectedTrackForPlaylist = null
             }
@@ -283,66 +348,50 @@ fun TrackItem(
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val palette = LocalColorPalette.current
 
     Column {
-        ListItem(
+        Surface(
             modifier = Modifier
-                .clickable(onClick = onClick)
-                .then(
-                    if (isCurrentTrack) {
-                        Modifier.background(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        )
-                    } else Modifier
-                ),
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent
-            ),
-            headlineContent = {
-                Text(
-                    text = track.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isCurrentTrack) MaterialTheme.colorScheme.primary 
-                           else MaterialTheme.colorScheme.onSurface
-                )
-            },
-            supportingContent = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = track.artist,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isCurrentTrack) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                               else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (track.isLocal) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = "Локальный",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        if (isCurrentTrack)
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    palette.cardLight,
+                                    palette.cardLight.copy(alpha = 0.9f),
+                                    palette.cardLight
+                                )
                             )
-                        }
-                    }
-                }
-            },
-            leadingContent = {
+                        else
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    palette.cardDark,
+                                    palette.cardMid,
+                                    palette.cardDark
+                                )
+                            )
+                    )
+            ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Album art with playing indicator
                 Box(
                     modifier = Modifier.size(56.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         AsyncImage(
@@ -358,8 +407,8 @@ fun TrackItem(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(palette.backgroundMid.copy(alpha = 0.85f)),
                             contentAlignment = Alignment.Center
                         ) {
                             PlayingIndicator(
@@ -368,26 +417,79 @@ fun TrackItem(
                                 barWidth = 3.dp,
                                 maxBarHeight = 20.dp,
                                 minBarHeight = 6.dp,
-                                barColor = Color.White,
+                                barColor = Color.White.copy(alpha = 0.9f),
                                 spacing = 3.dp
                             )
                         }
                     }
                 }
-            },
-            trailingContent = {
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // Track info
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = track.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = track.artist,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                        if (track.playCount > 0) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF4CAF50).copy(alpha = 0.3f)
+                            ) {
+                                Text(
+                                    text = "▶ ${track.playCount}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF4CAF50),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (track.isLocal) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            ) {
+                                Text(
+                                    text = "Локальный",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Duration and menu
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = formatDuration(track.duration),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White.copy(alpha = 0.6f)
                     )
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Меню",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = Color.White.copy(alpha = 0.7f)
                             )
                         }
                         DropdownMenu(
@@ -446,26 +548,8 @@ fun TrackItem(
                     }
                 }
             }
-        )
-        // Gradient divider
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            if (isCurrentTrack) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            if (isCurrentTrack) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
+        }
+        }
     }
     
     if (showEditDialog && onEditClick != null) {
@@ -505,7 +589,7 @@ fun EmptyState(
             Surface(
                 modifier = Modifier.size(80.dp),
                 shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = Color(0x30FFFFFF)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -520,14 +604,17 @@ fun EmptyState(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onRequestPermission,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
-                Text("Разрешить доступ к музыке")
+                Text("Разрешить доступ к музыке", color = Color.White)
             }
         }
     }

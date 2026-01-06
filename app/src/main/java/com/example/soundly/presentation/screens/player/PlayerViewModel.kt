@@ -65,6 +65,11 @@ class PlayerViewModel @Inject constructor(
     fun toggleFavorite(trackId: String) {
         viewModelScope.launch {
             trackRepository.toggleFavorite(trackId)
+            // Обновляем состояние текущего трека после toggle
+            val updatedTrack = trackRepository.getTrackById(trackId)
+            updatedTrack?.let { track ->
+                playerController.updateCurrentTrackFavorite(track.isFavorite)
+            }
         }
     }
 

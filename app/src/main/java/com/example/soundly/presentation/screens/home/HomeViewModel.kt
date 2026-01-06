@@ -16,6 +16,7 @@ import javax.inject.Inject
 data class HomeUiState(
     val tracks: List<Track> = emptyList(),
     val favoriteTracks: List<Track> = emptyList(),
+    val popularTracks: List<Track> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val searchQuery: String = "",
     val selectedTab: Int = 0,
@@ -43,6 +44,7 @@ class HomeViewModel @Inject constructor(
         playerController.initialize()
         loadTracksOnce()
         loadPlaylists()
+        loadPopularTracks()
         observeSearch()
     }
 
@@ -70,6 +72,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             trackRepository.getFavoriteTracks().collect { favorites ->
                 _uiState.update { it.copy(favoriteTracks = favorites) }
+            }
+        }
+    }
+    
+    private fun loadPopularTracks() {
+        viewModelScope.launch {
+            trackRepository.getTopTracks(50).collect { topTracks ->
+                _uiState.update { it.copy(popularTracks = topTracks) }
             }
         }
     }
@@ -111,10 +121,16 @@ class HomeViewModel @Inject constructor(
 
     fun playTrack(track: Track) {
         val queue = when (_uiState.value.selectedTab) {
+            1 -> _uiState.value.popularTracks
             2 -> _uiState.value.favoriteTracks
             else -> _uiState.value.tracks
         }
         playerController.playTrack(track, queue)
+        
+        // Increment play count for statistics
+        viewModelScope.launch {
+            trackRepository.incrementPlayCount(track.id)
+        }
     }
 
     fun playPause() {

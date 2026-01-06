@@ -6,72 +6,110 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6750A4),
+// ============== СВЕТЛАЯ ТЕМА НА ОСНОВЕ ПАЛИТРЫ ==============
+private fun createLightColorScheme(palette: ColorPalette) = lightColorScheme(
+    primary = palette.primary,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE9DDFF),
-    onPrimaryContainer = Color(0xFF22005D),
-    secondary = Color(0xFF625B71),
+    primaryContainer = palette.cardLight,
+    onPrimaryContainer = palette.textPrimary,
+    secondary = palette.accent,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8DEF8),
-    onSecondaryContainer = Color(0xFF1E192B),
-    tertiary = Color(0xFF7E5260),
+    secondaryContainer = palette.cardMid,
+    onSecondaryContainer = palette.textPrimary,
+    tertiary = palette.accentSecondary,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFD9E3),
-    onTertiaryContainer = Color(0xFF31101D),
-    background = Color(0xFFFFFBFF),
-    onBackground = Color(0xFF1C1B1E),
-    surface = Color(0xFFFFFBFF),
-    onSurface = Color(0xFF1C1B1E),
-    surfaceVariant = Color(0xFFF3EDF7),
-    onSurfaceVariant = Color(0xFF49454E),
-    outline = Color(0xFF7A757F),
-    outlineVariant = Color(0xFFCAC4CF)
+    tertiaryContainer = palette.cardDark,
+    onTertiaryContainer = palette.textPrimary,
+    background = palette.backgroundBottom,
+    onBackground = palette.textPrimary,
+    surface = palette.cardLight,
+    onSurface = palette.textPrimary,
+    surfaceVariant = palette.cardMid,
+    onSurfaceVariant = palette.textSecondary,
+    surfaceContainerLowest = palette.backgroundTop,
+    surfaceContainerLow = palette.backgroundMid,
+    surfaceContainer = palette.cardDark,
+    surfaceContainerHigh = palette.cardMid,
+    surfaceContainerHighest = palette.cardLight,
+    outline = palette.textSecondary,
+    outlineVariant = palette.textSecondary.copy(alpha = 0.5f)
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFB794F6),
-    onPrimary = Color(0xFF1E0A3C),
-    primaryContainer = Color(0xFF5B3D8A),
-    onPrimaryContainer = Color(0xFFEADDFF),
-    secondary = Color(0xFFD4BBFF),
-    onSecondary = Color(0xFF2D1F4A),
-    secondaryContainer = Color(0xFF453666),
+// ============== СОЗДАНИЕ ТЁМНОЙ ТЕМЫ НА ОСНОВЕ ПАЛИТРЫ ==============
+private fun createDarkColorScheme(palette: ColorPalette) = darkColorScheme(
+    // Primary - яркий акцент
+    primary = palette.primary,
+    onPrimary = Color.White,
+    primaryContainer = palette.primaryDark,
+    onPrimaryContainer = Color(0xFFEDE8FF),
+    
+    // Secondary - светлый вариант
+    secondary = palette.primaryLight,
+    onSecondary = Color(0xFF1E0A3C),
+    secondaryContainer = palette.cardMid,
     onSecondaryContainer = Color(0xFFF0E6FF),
-    tertiary = Color(0xFFFFB4C6),
-    onTertiary = Color(0xFF3E1929),
-    tertiaryContainer = Color(0xFF5A2D3F),
-    onTertiaryContainer = Color(0xFFFFD9E3),
-    background = Color(0xFF0D0B12),
-    onBackground = Color(0xFFECE6F0),
-    surface = Color(0xFF151319),
-    onSurface = Color(0xFFECE6F0),
-    surfaceVariant = Color(0xFF252230),
-    onSurfaceVariant = Color(0xFFD0C8DC),
-    outline = Color(0xFF8A8494),
-    outlineVariant = Color(0xFF3D3948),
-    inverseSurface = Color(0xFFECE6F0),
-    inverseOnSurface = Color(0xFF1C1B1E),
-    inversePrimary = Color(0xFF6750A4),
-    surfaceTint = Color(0xFFB794F6),
+    
+    // Tertiary - акцент
+    tertiary = palette.accent,
+    onTertiary = Color.White,
+    tertiaryContainer = palette.cardDark,
+    onTertiaryContainer = Color(0xFFD6E3FF),
+    
+    // Background - глубокий тёмный фон
+    background = palette.backgroundBottom,
+    onBackground = Color(0xFFFFFFFF),
+    
+    // Surface - поверхности карточек
+    surface = palette.cardDark,
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = palette.cardMid,
+    onSurfaceVariant = Color(0xFFD0C9E0),
+    
+    // Surface containers для Material 3
+    surfaceContainerLowest = palette.backgroundBottom,
+    surfaceContainerLow = palette.backgroundMid,
+    surfaceContainer = palette.cardDark,
+    surfaceContainerHigh = palette.cardMid,
+    surfaceContainerHighest = palette.cardLight,
+    
+    // Outline
+    outline = Color(0xFF8580A0),
+    outlineVariant = Color(0xFF4A4565),
+    
+    // Inverse
+    inverseSurface = Color(0xFFE6E1E9),
+    inverseOnSurface = palette.backgroundBottom,
+    inversePrimary = palette.primaryDeep,
+    
+    // Surface tint
+    surfaceTint = palette.primary,
+    
+    // Error
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6)
+    onErrorContainer = Color(0xFFFFDAD6),
+    
+    // Scrim
+    scrim = Color(0xFF000000)
 )
 
 @Composable
 fun SoundlyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
+    colorPalette: ColorPalette = ColorPalette.Purple,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    // Используем isDark из палитры для определения темы
+    val useDarkTheme = colorPalette.isDark
+    val colorScheme = if (useDarkTheme) createDarkColorScheme(colorPalette) else createLightColorScheme(colorPalette)
     val view = LocalView.current
     
     if (!view.isInEditMode) {
@@ -79,14 +117,19 @@ fun SoundlyTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !useDarkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !useDarkTheme
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalIsDarkTheme provides useDarkTheme,
+        LocalColorPalette provides colorPalette
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

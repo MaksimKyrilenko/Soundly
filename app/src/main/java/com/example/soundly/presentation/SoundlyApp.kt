@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -22,6 +23,9 @@ import com.example.soundly.presentation.components.MiniPlayer
 import com.example.soundly.presentation.navigation.Screen
 import com.example.soundly.presentation.navigation.SoundlyNavGraph
 import com.example.soundly.presentation.navigation.bottomNavItems
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
+import com.example.soundly.presentation.theme.navBarGradient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +33,7 @@ fun SoundlyAppContent() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val palette = LocalColorPalette.current
     
     val showBottomBar = currentDestination?.route in bottomNavItems.map { it.route }
     val showMiniPlayer = currentDestination?.route != Screen.Player.route &&
@@ -38,7 +43,7 @@ fun SoundlyAppContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(backgroundGradient())
     ) {
         // Main content
         SoundlyNavGraph(navController = navController)
@@ -70,7 +75,7 @@ fun SoundlyAppContent() {
                 )
             }
             
-            // Floating Navigation Bar
+            // Floating Navigation Bar with glass effect
             AnimatedVisibility(
                 visible = showBottomBar,
                 enter = slideInVertically(
@@ -95,17 +100,26 @@ fun SoundlyAppContent() {
                             .fillMaxWidth()
                             .height(64.dp)
                             .shadow(
-                                elevation = 8.dp,
+                                elevation = 16.dp,
                                 shape = RoundedCornerShape(32.dp),
-                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             ),
                         shape = RoundedCornerShape(32.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 3.dp
+                        color = Color.Transparent
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            palette.navBarTop,
+                                            palette.navBarBottom,
+                                            palette.navBarTop
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(32.dp)
+                                )
                                 .padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
@@ -146,8 +160,8 @@ fun SoundlyAppContent() {
                                     },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                     )
                                 )
                             }

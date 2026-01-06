@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -17,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.soundly.presentation.theme.DarkBackgroundGradient
+import com.example.soundly.presentation.theme.LocalIsDarkTheme
+import com.example.soundly.presentation.theme.PurplePrimary
+import com.example.soundly.presentation.theme.PurpleLight
 import kotlinx.coroutines.delay
 
 @Composable
@@ -105,17 +110,24 @@ fun SplashScreen(
         onSplashFinished()
     }
     
+    val isDark = LocalIsDarkTheme.current
+    val splashBackground = if (isDark) {
+        DarkBackgroundGradient
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFF8F5FF),
+                Color.White
+            )
+        )
+    }
+    val accentColor = if (isDark) PurpleLight else PurplePrimary
+    val textColor = if (isDark) Color.White else Color(0xFF1C1B1E)
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1E0A3C),
-                        Color(0xFF0D0B12)
-                    )
-                )
-            ),
+            .background(splashBackground),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -139,7 +151,7 @@ fun SplashScreen(
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    Color(0xFFB794F6),
+                                    accentColor,
                                     Color.Transparent
                                 )
                             )
@@ -154,8 +166,8 @@ fun SplashScreen(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFFB794F6),
-                                    Color(0xFF8B5CF6)
+                                    accentColor,
+                                    PurplePrimary
                                 )
                             )
                         ),
@@ -182,7 +194,7 @@ fun SplashScreen(
                 text = "Soundly",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = textColor,
                 modifier = Modifier.alpha(textAlpha)
             )
             
@@ -192,7 +204,7 @@ fun SplashScreen(
             Text(
                 text = "Твоя музыка",
                 fontSize = 16.sp,
-                color = Color(0xFFB794F6),
+                color = accentColor,
                 modifier = Modifier.alpha(textAlpha)
             )
         }
@@ -204,7 +216,7 @@ fun SplashScreen(
                 .padding(bottom = 80.dp)
                 .alpha(textAlpha)
         ) {
-            LoadingDots()
+            LoadingDots(accentColor)
         }
     }
 }
@@ -215,13 +227,13 @@ private fun SoundBar(height: androidx.compose.ui.unit.Dp) {
         modifier = Modifier
             .width(8.dp)
             .height(height)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(Color.White)
     )
 }
 
 @Composable
-private fun LoadingDots() {
+private fun LoadingDots(accentColor: Color = Color(0xFFB4A7FF)) {
     val infiniteTransition = rememberInfiniteTransition(label = "dots")
     
     Row(
@@ -243,7 +255,7 @@ private fun LoadingDots() {
                     .size(8.dp)
                     .alpha(alpha)
                     .clip(CircleShape)
-                    .background(Color(0xFFB794F6))
+                    .background(accentColor)
             )
         }
     }

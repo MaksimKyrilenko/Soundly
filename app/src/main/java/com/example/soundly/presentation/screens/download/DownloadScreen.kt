@@ -24,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun DownloadScreen(
@@ -32,10 +36,12 @@ fun DownloadScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val palette = LocalColorPalette.current
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(backgroundGradient())
             .statusBarsPadding(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -44,31 +50,42 @@ fun DownloadScreen(
             Text(
                 text = "Скачать",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
 
         // Download from YouTube card
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                color = Color.Transparent
             ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    palette.cardLight,
+                                    palette.cardDark
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = palette.cardLight,
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Outlined.Download,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -78,12 +95,13 @@ fun DownloadScreen(
                             Text(
                                 text = "Скачать с YouTube",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
                             Text(
                                 text = "Вставьте ссылку на видео",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -95,12 +113,12 @@ fun DownloadScreen(
                         value = uiState.url,
                         onValueChange = viewModel::onUrlChange,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("https://youtube.com/watch?v=...") },
+                        placeholder = { Text("https://youtube.com/watch?v=...", color = Color.White.copy(alpha = 0.5f)) },
                         leadingIcon = { 
                             Icon(
                                 Icons.Outlined.Link, 
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = Color.White.copy(alpha = 0.7f)
                             ) 
                         },
                         trailingIcon = {
@@ -109,14 +127,21 @@ fun DownloadScreen(
                                     Icon(
                                         Icons.Default.Clear,
                                         contentDescription = "Очистить",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = Color.White.copy(alpha = 0.7f)
                                     )
                                 }
                             }
                         },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
-                        enabled = !uiState.isDownloading && !uiState.isFetching
+                        enabled = !uiState.isDownloading && !uiState.isFetching,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        )
                     )
                     
                     // Loading indicator for fetching
@@ -130,13 +155,14 @@ fun DownloadScreen(
                             ) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = "Получение информации...",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -157,7 +183,7 @@ fun DownloadScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .background(palette.cardLight.copy(alpha = 0.5f))
                                         .padding(12.dp)
                                 ) {
                                     AsyncImage(
@@ -175,13 +201,14 @@ fun DownloadScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Medium,
                                             maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
+                                            color = Color.White
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = info.author,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = Color.White.copy(alpha = 0.7f),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -195,17 +222,26 @@ fun DownloadScreen(
                                     value = uiState.customTitle,
                                     onValueChange = viewModel::onTitleChange,
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("Название трека") },
+                                    label = { Text("Название трека", color = Color.White.copy(alpha = 0.7f)) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Outlined.MusicNote,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = Color.White.copy(alpha = 0.7f)
                                         )
                                     },
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
-                                    enabled = !uiState.isDownloading
+                                    enabled = !uiState.isDownloading,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        cursorColor = Color.White,
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                    )
                                 )
                                 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -214,17 +250,26 @@ fun DownloadScreen(
                                     value = uiState.customArtist,
                                     onValueChange = viewModel::onArtistChange,
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("Исполнитель") },
+                                    label = { Text("Исполнитель", color = Color.White.copy(alpha = 0.7f)) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Outlined.Person,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = Color.White.copy(alpha = 0.7f)
                                         )
                                     },
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
-                                    enabled = !uiState.isDownloading
+                                    enabled = !uiState.isDownloading,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        cursorColor = Color.White,
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                    )
                                 )
                             }
                         }
@@ -242,13 +287,13 @@ fun DownloadScreen(
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
                                 color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.primaryContainer
+                                trackColor = Color.White.copy(alpha = 0.2f)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = uiState.statusMessage.ifEmpty { "Загрузка..." },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White.copy(alpha = 0.7f)
                             )
                         }
                     } else {
@@ -261,10 +306,11 @@ fun DownloadScreen(
                             Icon(
                                 Icons.Default.Download, 
                                 contentDescription = null, 
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Скачать MP3")
+                            Text("Скачать MP3", color = Color.White)
                         }
                     }
 
@@ -351,7 +397,7 @@ fun DownloadScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = Color(0xFF4CAF50).copy(alpha = 0.2f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -361,29 +407,42 @@ fun DownloadScreen(
                                 Icon(
                                     Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = Color(0xFF4CAF50),
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = message,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = Color.White
                                 )
                             }
                         }
                     }
                 }
             }
+            }
         }
 
         // How it works card
         item {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                color = Color.Transparent
             ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    palette.cardLight,
+                                    palette.cardDark
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -395,7 +454,8 @@ fun DownloadScreen(
                         Text(
                             text = "Как это работает", 
                             style = MaterialTheme.typography.titleMedium, 
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -407,8 +467,9 @@ fun DownloadScreen(
                     Text(
                         text = "Файлы сохраняются в папку Music/Soundly",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White.copy(alpha = 0.7f)
                     )
+                }
                 }
             }
         }
@@ -419,7 +480,8 @@ fun DownloadScreen(
                 Text(
                     text = "Недавние загрузки",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
             items(uiState.recentDownloads) { download ->
@@ -433,13 +495,14 @@ fun DownloadScreen(
 
 @Composable
 fun HowItWorksStep(number: Int, text: String) {
+    val palette = LocalColorPalette.current
     Row(
         modifier = Modifier.padding(vertical = 6.dp), 
         verticalAlignment = Alignment.Top
     ) {
         Surface(
             shape = RoundedCornerShape(6.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = palette.cardLight,
             modifier = Modifier.size(24.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -447,7 +510,7 @@ fun HowItWorksStep(number: Int, text: String) {
                     text = "$number",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color.White
                 )
             }
         }
@@ -455,18 +518,33 @@ fun HowItWorksStep(number: Int, text: String) {
         Text(
             text = text, 
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 2.dp)
+            modifier = Modifier.padding(top = 2.dp),
+            color = Color.White
         )
     }
 }
 
 @Composable
 fun DownloadItemCard(item: DownloadItem) {
-    Card(
+    val palette = LocalColorPalette.current
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        color = Color.Transparent
     ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            palette.cardDark,
+                            palette.cardMid,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+        ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -489,14 +567,15 @@ fun DownloadItemCard(item: DownloadItem) {
                     maxLines = 1, 
                     overflow = TextOverflow.Ellipsis, 
                     fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White
                 )
                 Text(
                     text = item.artist,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.7f)
                 )
             }
             
@@ -506,9 +585,9 @@ fun DownloadItemCard(item: DownloadItem) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = when (item.status) {
-                    DownloadStatus.COMPLETED -> MaterialTheme.colorScheme.primaryContainer
-                    DownloadStatus.FAILED -> MaterialTheme.colorScheme.errorContainer
-                    else -> MaterialTheme.colorScheme.surfaceVariant
+                    DownloadStatus.COMPLETED -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                    DownloadStatus.FAILED -> Color(0xFFEF5350).copy(alpha = 0.2f)
+                    else -> Color.White.copy(alpha = 0.1f)
                 },
                 modifier = Modifier.size(36.dp)
             ) {
@@ -522,14 +601,15 @@ fun DownloadItemCard(item: DownloadItem) {
                         },
                         contentDescription = null,
                         tint = when (item.status) {
-                            DownloadStatus.COMPLETED -> MaterialTheme.colorScheme.primary
-                            DownloadStatus.FAILED -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            DownloadStatus.COMPLETED -> Color(0xFF4CAF50)
+                            DownloadStatus.FAILED -> Color(0xFFEF5350)
+                            else -> Color.White.copy(alpha = 0.7f)
                         },
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
+        }
         }
     }
 }

@@ -330,6 +330,10 @@ class EqualizerViewModel @Inject constructor(
         
         val settings = getCurrentExportSettings()
         
+        // Логируем настройки экспорта
+        android.util.Log.d("EqualizerViewModel", "Export settings: speed=${settings.speed}, pitch=${settings.pitch}, preservePitch=${settings.preservePitch}, mode=${settings.playbackMode}")
+        android.util.Log.d("EqualizerViewModel", "UI State: speed=${_uiState.value.playbackSpeed}, pitch=${_uiState.value.pitch}, preservePitch=${_uiState.value.preservePitch}")
+        
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 showExportDialog = false,

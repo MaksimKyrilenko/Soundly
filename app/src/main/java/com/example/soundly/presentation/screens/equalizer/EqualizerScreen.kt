@@ -3,6 +3,7 @@ package com.example.soundly.presentation.screens.equalizer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -29,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.soundly.domain.model.*
 import com.example.soundly.domain.model.AudioExportSettings
+import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,15 +79,28 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
         else -> {}
     }
 
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Эквалайзер") },
-            navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
-            actions = {
-                TextButton(onClick = { viewModel.toggleMode() }) { Text(if (uiState.mode == EqualizerMode.SIMPLE) "PRO" else "SIMPLE") }
-                Switch(checked = uiState.isEnabled, onCheckedChange = { viewModel.toggleEnabled() })
-            })
-    }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Эквалайзер") },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
+                actions = {
+                    TextButton(onClick = { viewModel.toggleMode() }) { Text(if (uiState.mode == EqualizerMode.SIMPLE) "PRO" else "SIMPLE") }
+                    Switch(checked = uiState.isEnabled, onCheckedChange = { viewModel.toggleEnabled() })
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
+            )
+        },
+        containerColor = androidx.compose.ui.graphics.Color.Transparent
+    ) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(backgroundGradient())
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
             SpeedCard(
                 speed = uiState.playbackSpeed,
                 pitch = uiState.pitch,
@@ -148,16 +164,29 @@ fun SpeedCard(
     onReset: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
+    val palette = LocalColorPalette.current
     
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
             // Заголовок с текущими значениями
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Скорость и тон", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Скорость и тон", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = androidx.compose.ui.graphics.Color.White)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text("${String.format("%.2f", speed)}x", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        Text("pitch: ${String.format("%.2f", pitch)}x", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                        Text("pitch: ${String.format("%.2f", pitch)}x", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
                     }
                     Spacer(Modifier.width(8.dp))
                     IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onReset() }) {
@@ -169,7 +198,7 @@ fun SpeedCard(
             Spacer(Modifier.height(16.dp))
             
             // Быстрые пресеты (osu! style)
-            Text("⚡ Быстрые пресеты", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("⚡ Быстрые пресеты", style = MaterialTheme.typography.labelMedium, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(8.dp))
             
             // Первый ряд - с изменением тона
@@ -219,22 +248,22 @@ fun SpeedCard(
             }
             
             Spacer(Modifier.height(20.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
             Spacer(Modifier.height(16.dp))
             
             // Ползунок скорости
-            Text("🎚️ Скорость воспроизведения", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("🎚️ Скорость воспроизведения", style = MaterialTheme.typography.labelMedium, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(4.dp))
             
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("0.25x", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Text("0.25x", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f))
                 Slider(
                     value = speed,
                     onValueChange = onSpeedChange,
                     valueRange = 0.25f..3.0f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                 )
-                Text("3.0x", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Text("3.0x", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f))
             }
             
             // Быстрые кнопки скорости
@@ -248,7 +277,7 @@ fun SpeedCard(
                             "${s}x",
                             fontSize = 11.sp,
                             fontWeight = if (kotlin.math.abs(speed - s) < 0.01f) FontWeight.Bold else FontWeight.Normal,
-                            color = if (kotlin.math.abs(speed - s) < 0.01f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (kotlin.math.abs(speed - s) < 0.01f) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -257,11 +286,11 @@ fun SpeedCard(
             Spacer(Modifier.height(16.dp))
             
             // Ползунок питча
-            Text("🎵 Высота тона (Pitch)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("🎵 Высота тона (Pitch)", style = MaterialTheme.typography.labelMedium, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(4.dp))
             
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("0.25x", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Text("0.25x", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f))
                 Slider(
                     value = pitch,
                     onValueChange = onPitchChange,
@@ -272,7 +301,7 @@ fun SpeedCard(
                         activeTrackColor = MaterialTheme.colorScheme.secondary
                     )
                 )
-                Text("3.0x", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Text("3.0x", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.5f))
             }
             
             // Быстрые кнопки питча
@@ -286,7 +315,7 @@ fun SpeedCard(
                             "${p}x",
                             fontSize = 11.sp,
                             fontWeight = if (kotlin.math.abs(pitch - p) < 0.01f) FontWeight.Bold else FontWeight.Normal,
-                            color = if (kotlin.math.abs(pitch - p) < 0.01f) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (kotlin.math.abs(pitch - p) < 0.01f) MaterialTheme.colorScheme.secondary else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -301,11 +330,11 @@ fun SpeedCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("🔗 Связать pitch со скоростью", style = MaterialTheme.typography.bodyMedium)
+                    Text("🔗 Связать pitch со скоростью", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White)
                     Text(
                         if (preservePitch) "Pitch сохраняется (time-stretch)" else "Pitch меняется вместе со скоростью",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
                     )
                 }
                 Switch(
@@ -317,7 +346,7 @@ fun SpeedCard(
             // PRO режим - дополнительные настройки
             if (isPro) {
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.2f))
                 Spacer(Modifier.height(12.dp))
                 
                 Text("🎛️ PRO настройки", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -326,23 +355,24 @@ fun SpeedCard(
                 // Семитоны для pitch
                 val semitones = ((kotlin.math.ln(pitch.toDouble()) / kotlin.math.ln(2.0)) * 12).toInt()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Полутона: ${if (semitones >= 0) "+" else ""}$semitones", style = MaterialTheme.typography.bodySmall)
-                    Text("BPM множитель: ${String.format("%.0f", speed * 100)}%", style = MaterialTheme.typography.bodySmall)
+                    Text("Полутона: ${if (semitones >= 0) "+" else ""}$semitones", style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color.White)
+                    Text("BPM множитель: ${String.format("%.0f", speed * 100)}%", style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color.White)
                 }
                 
                 Spacer(Modifier.height(8.dp))
                 
                 // Точная настройка в центах
                 val cents = ((kotlin.math.ln(pitch.toDouble()) / kotlin.math.ln(2.0)) * 1200).toInt() % 100
-                Text("Центы: ${if (cents >= 0) "+" else ""}$cents", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Центы: ${if (cents >= 0) "+" else ""}$cents", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f))
             }
+        }
         }
     }
 }
 
 @Composable
 fun PresetsRow(presets: List<EqualizerPresetV2>, selectedId: String, enabled: Boolean, onSelect: (EqualizerPresetV2) -> Unit) {
-    Text("Пресеты", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
+    Text("Пресеты", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp), color = androidx.compose.ui.graphics.Color.White)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(presets) { preset -> FilterChip(selectedId == preset.id, { onSelect(preset) }, { Text(preset.name) }, enabled = enabled) }
     }
@@ -350,9 +380,22 @@ fun PresetsRow(presets: List<EqualizerPresetV2>, selectedId: String, enabled: Bo
 
 @Composable
 fun BandsCard(bands: List<Float>, enabled: Boolean, isPro: Boolean, onChange: (Int, Float) -> Unit, onReset: (Int) -> Unit, haptic: androidx.compose.ui.hapticfeedback.HapticFeedback) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
-            Text("10-полосный эквалайзер", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("10-полосный эквалайзер", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = androidx.compose.ui.graphics.Color.White)
             if (isPro) {
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -368,56 +411,84 @@ fun BandsCard(bands: List<Float>, enabled: Boolean, isPro: Boolean, onChange: (I
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(30.dp)
                         .pointerInput(Unit) { detectTapGestures(onDoubleTap = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onReset(i) }) }) {
                         Text(if (v >= 0) "+${v.toInt()}" else "${v.toInt()}", fontSize = 8.sp,
-                            color = if (v > 0) MaterialTheme.colorScheme.primary else if (v < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                            color = if (v > 0) MaterialTheme.colorScheme.primary else if (v < 0) MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f))
                         Slider(v, { onChange(i, it) }, valueRange = -12f..12f, enabled = enabled, modifier = Modifier.weight(1f))
-                        Text(EQ_FREQUENCY_LABELS[i], fontSize = 7.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(EQ_FREQUENCY_LABELS[i], fontSize = 7.sp, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f))
                     }
                 }
             }
+        }
         }
     }
 }
 
 @Composable
 fun PreampCard(preamp: Float, autoGain: Boolean, enabled: Boolean, onChange: (Float) -> Unit, onAutoGainToggle: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Preamp", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Preamp", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = androidx.compose.ui.graphics.Color.White)
                 Text("${if (preamp >= 0) "+" else ""}${String.format("%.1f", preamp)} dB", color = MaterialTheme.colorScheme.primary)
             }
             Slider(preamp, onChange, valueRange = -6f..6f, enabled = enabled)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Auto Gain", style = MaterialTheme.typography.bodyMedium)
+                Text("Auto Gain", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White)
                 Switch(autoGain, { onAutoGainToggle() }, enabled = enabled)
             }
+        }
         }
     }
 }
 
 @Composable
 fun BassCard(amount: Float, freq: Int, mode: BassEnhancerMode, enabled: Boolean, isPro: Boolean, onAmountChange: (Float) -> Unit, onFreqChange: (Int) -> Unit, onModeChange: (BassEnhancerMode) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
-            Text("Усиление басов", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Усиление басов", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = androidx.compose.ui.graphics.Color.White)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.GraphicEq, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(12.dp))
                 Slider(amount, onAmountChange, valueRange = 0f..100f, enabled = enabled, modifier = Modifier.weight(1f))
-                Text("${amount.toInt()}%", modifier = Modifier.width(40.dp))
+                Text("${amount.toInt()}%", modifier = Modifier.width(40.dp), color = androidx.compose.ui.graphics.Color.White)
             }
             if (isPro) {
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Частота", style = MaterialTheme.typography.bodyMedium)
+                    Text("Частота", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(60, 80, 100).forEach { f -> FilterChip(freq == f, { onFreqChange(f) }, { Text("${f}Hz") }, enabled = enabled) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Режим", style = MaterialTheme.typography.bodyMedium)
+                    Text("Режим", style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(mode == BassEnhancerMode.SOFT, { onModeChange(BassEnhancerMode.SOFT) }, { Text("Soft") }, enabled = enabled)
                         FilterChip(mode == BassEnhancerMode.HARD, { onModeChange(BassEnhancerMode.HARD) }, { Text("Hard") }, enabled = enabled)
@@ -425,24 +496,39 @@ fun BassCard(amount: Float, freq: Int, mode: BassEnhancerMode, enabled: Boolean,
                 }
             }
         }
+        }
     }
 }
 
 @Composable
 fun EffectsCard(stereoWidth: Float, isMono: Boolean, loudness: Boolean, balance: Float, enabled: Boolean, onStereoChange: (Float) -> Unit, onMonoToggle: () -> Unit, onLoudnessToggle: () -> Unit, onBalanceChange: (Float) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = androidx.compose.ui.graphics.Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
-            Text("Дополнительные эффекты", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Дополнительные эффекты", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = androidx.compose.ui.graphics.Color.White)
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.SurroundSound, null, tint = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) { Text("Ширина стерео"); Slider(stereoWidth, onStereoChange, valueRange = 0f..150f, enabled = enabled && !isMono) }
-                Text("${stereoWidth.toInt()}%", modifier = Modifier.width(45.dp))
+                Column(Modifier.weight(1f)) { Text("Ширина стерео", color = androidx.compose.ui.graphics.Color.White); Slider(stereoWidth, onStereoChange, valueRange = 0f..150f, enabled = enabled && !isMono) }
+                Text("${stereoWidth.toInt()}%", modifier = Modifier.width(45.dp), color = androidx.compose.ui.graphics.Color.White)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Моно"); Switch(isMono, { onMonoToggle() }, enabled = enabled) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Loudness"); Switch(loudness, { onLoudnessToggle() }, enabled = enabled) }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("L"); Slider(balance, onBalanceChange, valueRange = -100f..100f, enabled = enabled, modifier = Modifier.weight(1f)); Text("R") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Моно", color = androidx.compose.ui.graphics.Color.White); Switch(isMono, { onMonoToggle() }, enabled = enabled) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Loudness", color = androidx.compose.ui.graphics.Color.White); Switch(loudness, { onLoudnessToggle() }, enabled = enabled) }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("L", color = androidx.compose.ui.graphics.Color.White); Slider(balance, onBalanceChange, valueRange = -100f..100f, enabled = enabled, modifier = Modifier.weight(1f)); Text("R", color = androidx.compose.ui.graphics.Color.White) }
+        }
         }
     }
 }
@@ -501,13 +587,24 @@ fun ExportCard(
     settings: AudioExportSettings,
     onExportClick: () -> Unit
 ) {
-    Card(
+    val palette = LocalColorPalette.current
+    Surface(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-        )
+        color = androidx.compose.ui.graphics.Color.Transparent
     ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            palette.cardLight,
+                            palette.cardDark
+                        )
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -518,14 +615,15 @@ fun ExportCard(
                     Text(
                         "💾 Экспорт с эффектами",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = androidx.compose.ui.graphics.Color.White
                     )
                     Spacer(Modifier.height(4.dp))
                     if (currentTrack != null && settings.hasChanges()) {
                         Text(
                             "Сохранить \"${currentTrack.title}\" с текущими настройками",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -537,13 +635,13 @@ fun ExportCard(
                         Text(
                             "Начните воспроизведение трека",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)
                         )
                     } else {
                         Text(
                             "Измените настройки эквалайзера",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -557,11 +655,12 @@ fun ExportCard(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Icon(Icons.Default.Download, contentDescription = null)
+                    Icon(Icons.Default.Download, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text("Экспорт")
+                    Text("Экспорт", color = androidx.compose.ui.graphics.Color.White)
                 }
             }
+        }
         }
     }
 }
@@ -624,7 +723,9 @@ fun ExportProgressDialog(
             )
         ) {
             Column(
-                Modifier.padding(24.dp),
+                Modifier
+                    .background(com.example.soundly.presentation.theme.dialogGradient())
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CircularProgressIndicator()
