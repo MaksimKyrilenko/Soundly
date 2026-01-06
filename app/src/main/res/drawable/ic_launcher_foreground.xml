@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Sound bars left side -->
+    <path
+        android:pathData="M18,42L18,66"
+        android:strokeWidth="4"
+        android:strokeColor="#9333EA"
+        android:strokeLineCap="round"/>
+    
+    <path
+        android:pathData="M26,36L26,72"
+        android:strokeWidth="4"
+        android:strokeColor="#A855F7"
+        android:strokeLineCap="round"/>
+    
+    <path
+        android:pathData="M34,30L34,78"
+        android:strokeWidth="4"
+        android:strokeColor="#C084FC"
+        android:strokeLineCap="round"/>
+    
+    <!-- Sound bars right side -->
+    <path
+        android:pathData="M74,30L74,78"
+        android:strokeWidth="4"
+        android:strokeColor="#22D3EE"
+        android:strokeLineCap="round"/>
+    
+    <path
+        android:pathData="M82,36L82,72"
+        android:strokeWidth="4"
+        android:strokeColor="#06B6D4"
+        android:strokeLineCap="round"/>
+    
+    <path
+        android:pathData="M90,42L90,66"
+        android:strokeWidth="4"
+        android:strokeColor="#0891B2"
+        android:strokeLineCap="round"/>
+    
+    <!-- Outer circle -->
+    <path
+        android:pathData="M54,54m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"
+        android:strokeWidth="3"
+        android:strokeColor="#A855F7"
+        android:fillColor="#00000000"/>
+    
+    <!-- Inner circle -->
+    <path
+        android:pathData="M54,54m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0"
+        android:strokeWidth="2.5"
+        android:strokeColor="#22D3EE"
+        android:fillColor="#00000000"/>
+    
+    <!-- Double music note -->
+    <!-- First note stem -->
+    <path
+        android:pathData="M50,44L50,62"
+        android:strokeWidth="2.5"
+        android:strokeColor="#A855F7"
+        android:strokeLineCap="round"/>
+    
+    <!-- Second note stem -->
+    <path
+        android:pathData="M60,44L60,58"
+        android:strokeWidth="2.5"
+        android:strokeColor="#A855F7"
+        android:strokeLineCap="round"/>
+    
+    <!-- Connecting beam -->
+    <path
+        android:pathData="M50,44L60,44"
+        android:strokeWidth="2.5"
+        android:strokeColor="#A855F7"
+        android:strokeLineCap="round"/>
+    
+    <!-- First note head -->
+    <path
+        android:pathData="M46,63a4,3 -20,1 0,6 -2a4,3 -20,1 0,-6 2"
+        android:fillColor="#A855F7"/>
+    
+    <!-- Second note head -->
+    <path
+        android:pathData="M56,59a4,3 -20,1 0,6 -2a4,3 -20,1 0,-6 2"
+        android:fillColor="#A855F7"/>
+    
+</vector>
