@@ -120,15 +120,40 @@ class AudioExportService @Inject constructor(
             onProgress(ExportResult.Progress(95, "Сканирование медиатеки..."))
             scanFile(finalOutputFile.absolutePath)
             
+            // Копируем обложку оригинала для экспортированного трека
+            var exportedArtworkUri = sourceTrack.artworkUri
+            try {
+                val sourceArtwork = sourceTrack.artworkUri
+                if (sourceArtwork != null && sourceArtwork.startsWith("file://")) {
+                    val sourceArtworkFile = File(sourceArtwork.removePrefix("file://"))
+                    if (sourceArtworkFile.exists()) {
+                        // Создаём папку для обложек экспортов
+                        val thumbnailDir = File(exportDir, ".thumbnails")
+                        if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
+                        
+                        // Имя обложки = имя экспортированного файла
+                        val exportFileName = finalOutputFile.name.substringBeforeLast(".")
+                        val extension = sourceArtworkFile.extension.ifEmpty { "jpg" }
+                        val destArtworkFile = File(thumbnailDir, "$exportFileName.$extension")
+                        
+                        sourceArtworkFile.copyTo(destArtworkFile, overwrite = true)
+                        exportedArtworkUri = "file://${destArtworkFile.absolutePath}"
+                        android.util.Log.d(TAG, "Copied artwork to: ${destArtworkFile.absolutePath}")
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.w(TAG, "Failed to copy artwork: ${e.message}")
+            }
+            
             onProgress(ExportResult.Progress(100, "Готово!"))
             
             val newTrack = Track(
-                id = "exp_${UUID.randomUUID()}",
+                id = "soundly_${finalOutputFile.absolutePath.hashCode()}",
                 title = newTitle,
                 artist = sourceTrack.artist,
                 album = sourceTrack.album,
                 duration = calculateNewDuration(sourceTrack.duration, settings.speed),
-                artworkUri = sourceTrack.artworkUri, // Копируем обложку с оригинала
+                artworkUri = exportedArtworkUri,
                 uri = "file://${finalOutputFile.absolutePath}",
                 isLocal = true,
                 isFavorite = false,

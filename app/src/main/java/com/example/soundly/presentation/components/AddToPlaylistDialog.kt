@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Playlist
+import com.example.soundly.presentation.theme.LocalColorPalette
 import com.example.soundly.presentation.theme.dialogGradient
 
 @Composable
@@ -30,13 +31,15 @@ fun AddToPlaylistDialog(
     onPlaylistSelected: (String) -> Unit,
     onCreateNew: () -> Unit
 ) {
+    val palette = LocalColorPalette.current
+    
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 400.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2355))
+            colors = CardDefaults.cardColors(containerColor = palette.cardMid)
         ) {
             Column(
                 modifier = Modifier
@@ -46,7 +49,7 @@ fun AddToPlaylistDialog(
                 Text(
                     text = "Добавить в плейлист",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = palette.textPrimary,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
@@ -55,7 +58,7 @@ fun AddToPlaylistDialog(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .clickable(onClick = onCreateNew),
-                    color = Color(0x30FFFFFF),
+                    color = palette.textPrimary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -78,7 +81,7 @@ fun AddToPlaylistDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             "Создать новый плейлист",
-                            color = Color.White
+                            color = palette.textPrimary
                         )
                     }
                 }
@@ -86,7 +89,7 @@ fun AddToPlaylistDialog(
                 if (playlists.isNotEmpty()) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
-                        color = Color.White.copy(alpha = 0.1f)
+                        color = palette.textPrimary.copy(alpha = 0.1f)
                     )
 
                     LazyColumn {
@@ -117,13 +120,15 @@ fun PlaylistSelectItem(
     playlist: Playlist,
     onClick: () -> Unit
 ) {
+    val palette = LocalColorPalette.current
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
-        color = Color(0x20FFFFFF),
+        color = palette.textPrimary.copy(alpha = 0.08f),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -177,12 +182,12 @@ fun PlaylistSelectItem(
                     text = playlist.name,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 Text(
                     text = "${playlist.trackIds.size} треков",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = palette.textSecondary
                 )
             }
         }

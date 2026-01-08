@@ -25,6 +25,7 @@ import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.screens.home.formatDuration
 import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,14 +34,15 @@ fun FavoritesScreen(
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val palette = LocalColorPalette.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Избранное", color = Color.White) },
+                title = { Text("Избранное", color = palette.textPrimary) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = palette.textPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -79,13 +81,13 @@ fun FavoritesScreen(
                         Text(
                             text = "Нет избранных треков",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White
+                            color = palette.textPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Добавляйте треки в избранное нажатием на ❤️",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = palette.textSecondary
                         )
                     }
                 }
@@ -111,16 +113,16 @@ fun FavoritesScreen(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = palette.textPrimary)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Воспроизвести", color = Color.White)
+                                Text("Воспроизвести", color = palette.textPrimary)
                             }
                             OutlinedButton(
                                 onClick = { viewModel.shufflePlay() },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.White
+                                    contentColor = palette.textPrimary
                                 )
                             ) {
                                 Icon(Icons.Default.Shuffle, contentDescription = null)
@@ -149,6 +151,7 @@ fun FavoriteTrackItem(
     onClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
+    val palette = LocalColorPalette.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -162,9 +165,9 @@ fun FavoriteTrackItem(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF2D2560),
-                            Color(0xFF352A65),
-                            Color(0xFF2D2560)
+                            palette.cardDark,
+                            palette.cardMid,
+                            palette.cardDark
                         )
                     ),
                     shape = RoundedCornerShape(16.dp)
@@ -194,14 +197,14 @@ fun FavoriteTrackItem(
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 Text(
                     text = track.artist,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = palette.textSecondary
                 )
             }
             
@@ -210,7 +213,7 @@ fun FavoriteTrackItem(
                 Text(
                     text = formatDuration(track.duration),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = palette.textSecondary
                 )
                 IconButton(onClick = onRemoveClick) {
                     Icon(

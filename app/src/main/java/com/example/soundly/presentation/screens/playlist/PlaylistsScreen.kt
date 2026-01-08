@@ -119,16 +119,16 @@ fun PlaylistsScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Поиск плейлистов...", color = Color.White.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Поиск плейлистов...", color = palette.textSecondary) },
                         leadingIcon = {
                             IconButton(onClick = { isSearchActive = false; searchQuery = "" }) {
-                                Icon(Icons.Default.ArrowBack, "Назад", tint = Color.White)
+                                Icon(Icons.Default.ArrowBack, "Назад", tint = palette.textPrimary)
                             }
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, "Очистить", tint = Color.White)
+                                    Icon(Icons.Default.Clear, "Очистить", tint = palette.textPrimary)
                                 }
                             }
                         },
@@ -136,9 +136,9 @@ fun PlaylistsScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = Color.Transparent,
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            cursorColor = palette.textPrimary,
+                            focusedTextColor = palette.textPrimary,
+                            unfocusedTextColor = palette.textPrimary
                         )
                     )
                 }
@@ -155,18 +155,18 @@ fun PlaylistsScreen(
                             text = "Плейлисты",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = palette.textPrimary
                         )
                         Text(
                             text = "$totalPlaylists плейлистов • $totalTracks треков",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = palette.textSecondary
                         )
                     }
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(onClick = { isSearchActive = true }) {
-                            Icon(Icons.Default.Search, "Поиск", tint = Color.White)
+                            Icon(Icons.Default.Search, "Поиск", tint = palette.textPrimary)
                         }
                         IconButton(onClick = { 
                             viewMode = if (viewMode == PlaylistViewMode.LIST) 
@@ -176,12 +176,12 @@ fun PlaylistsScreen(
                                 if (viewMode == PlaylistViewMode.LIST) Icons.Default.GridView 
                                 else Icons.Default.ViewList,
                                 "Вид",
-                                tint = Color.White
+                                tint = palette.textPrimary
                             )
                         }
                         Box {
                             IconButton(onClick = { showSortMenu = true }) {
-                                Icon(Icons.AutoMirrored.Filled.Sort, "Сортировка", tint = Color.White)
+                                Icon(Icons.AutoMirrored.Filled.Sort, "Сортировка", tint = palette.textPrimary)
                             }
                             DropdownMenu(
                                 expanded = showSortMenu,
@@ -316,8 +316,8 @@ fun PlaylistsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false; selectedPlaylistForMenu = null },
             icon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Удалить плейлист?", color = Color.White) },
-            text = { Text("Плейлист \"${selectedPlaylistForMenu?.name}\" будет удалён.", color = Color.White.copy(alpha = 0.7f)) },
+            title = { Text("Удалить плейлист?", color = palette.textPrimary) },
+            text = { Text("Плейлист \"${selectedPlaylistForMenu?.name}\" будет удалён.", color = palette.textSecondary) },
             confirmButton = {
                 Button(
                     onClick = { selectedPlaylistForMenu?.let { viewModel.deletePlaylist(it.id) }; showDeleteConfirmDialog = false; selectedPlaylistForMenu = null },
@@ -356,6 +356,7 @@ fun QuickActionsRow(onCreateClick: () -> Unit, onFavoritesClick: () -> Unit, onR
 
 @Composable
 fun QuickActionChip(icon: ImageVector, label: String, onClick: () -> Unit, isPrimary: Boolean = false) {
+    val palette = LocalColorPalette.current
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
@@ -366,8 +367,8 @@ fun QuickActionChip(icon: ImageVector, label: String, onClick: () -> Unit, isPri
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, modifier = Modifier.size(18.dp), tint = if (isPrimary) MaterialTheme.colorScheme.primary else Color.White)
-            Text(label, style = MaterialTheme.typography.labelLarge, color = if (isPrimary) MaterialTheme.colorScheme.primary else Color.White)
+            Icon(icon, null, modifier = Modifier.size(18.dp), tint = if (isPrimary) MaterialTheme.colorScheme.primary else palette.textPrimary)
+            Text(label, style = MaterialTheme.typography.labelLarge, color = if (isPrimary) MaterialTheme.colorScheme.primary else palette.textPrimary)
         }
     }
 }
@@ -397,14 +398,14 @@ fun PlaylistListItem(playlist: Playlist, onClick: () -> Unit, onLongClick: () ->
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             PlaylistCover(coverUri = playlist.coverUri, size = 64.dp)
             Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(text = playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.White)
+                Text(text = playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = palette.textPrimary)
                 if (playlist.description.isNotBlank()) {
-                    Text(text = playlist.description, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = playlist.description, style = MaterialTheme.typography.bodySmall, color = palette.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.6f))
-                    Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                    Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(14.dp), tint = palette.textSecondary)
+                    Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
                     if (playlist.isSynced) { Icon(Icons.Default.Cloud, "Синхронизировано", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
                 }
             }
@@ -443,8 +444,8 @@ fun PlaylistGridItem(playlist: Playlist, onClick: () -> Unit, onLongClick: () ->
         Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             PlaylistCover(coverUri = playlist.coverUri, size = 100.dp, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = playlist.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, color = Color.White)
-            Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+            Text(text = playlist.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, color = palette.textPrimary)
+            Text(text = "${playlist.trackIds.size} треков", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
         }
         }
     }
@@ -465,6 +466,7 @@ fun PlaylistCover(coverUri: String?, size: androidx.compose.ui.unit.Dp, modifier
 
 @Composable
 fun EmptyPlaylistsState(modifier: Modifier = Modifier, onCreateClick: () -> Unit) {
+    val palette = LocalColorPalette.current
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
             val infiniteTransition = rememberInfiniteTransition(label = "empty")
@@ -473,9 +475,9 @@ fun EmptyPlaylistsState(modifier: Modifier = Modifier, onCreateClick: () -> Unit
                 Box(contentAlignment = Alignment.Center) { Icon(imageVector = Icons.AutoMirrored.Filled.PlaylistPlay, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary) }
             }
             Spacer(modifier = Modifier.height(32.dp))
-            Text(text = "Нет плейлистов", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = "Нет плейлистов", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = palette.textPrimary)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Создайте свой первый плейлист\nи добавьте любимые треки", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+            Text(text = "Создайте свой первый плейлист\nи добавьте любимые треки", style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(32.dp))
             Button(onClick = onCreateClick, shape = RoundedCornerShape(24.dp), contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
@@ -488,12 +490,13 @@ fun EmptyPlaylistsState(modifier: Modifier = Modifier, onCreateClick: () -> Unit
 
 @Composable
 fun EmptySearchState(query: String, onClear: () -> Unit) {
+    val palette = LocalColorPalette.current
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
             Icon(Icons.Default.SearchOff, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Ничего не найдено", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = Color.White)
-            Text("По запросу \"$query\"", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+            Text("Ничего не найдено", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, color = palette.textPrimary)
+            Text("По запросу \"$query\"", style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = onClear) { Text("Очистить поиск") }
         }
@@ -510,11 +513,11 @@ fun PlaylistContextMenu(playlist: Playlist, onDismiss: () -> Unit, onEdit: () ->
                 PlaylistCover(coverUri = playlist.coverUri, size = 56.dp)
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color.White)
-                    Text("${playlist.trackIds.size} треков", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
+                    Text(playlist.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = palette.textPrimary)
+                    Text("${playlist.trackIds.size} треков", style = MaterialTheme.typography.bodySmall, color = palette.textSecondary)
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.White.copy(alpha = 0.1f))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = palette.textSecondary.copy(alpha = 0.2f))
             ContextMenuItem(icon = Icons.Default.Edit, title = "Редактировать", onClick = { onDismiss(); onEdit() })
             ContextMenuItem(icon = Icons.Default.ContentCopy, title = "Дублировать", onClick = { onDismiss(); onDuplicate() })
             ContextMenuItem(icon = Icons.Default.Share, title = "Поделиться", onClick = { onDismiss(); onShare() })
@@ -525,10 +528,11 @@ fun PlaylistContextMenu(playlist: Playlist, onDismiss: () -> Unit, onEdit: () ->
 
 @Composable
 fun ContextMenuItem(icon: ImageVector, title: String, onClick: () -> Unit, isDestructive: Boolean = false) {
+    val palette = LocalColorPalette.current
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = { Text(title, color = if (isDestructive) MaterialTheme.colorScheme.error else Color.White) },
-        leadingContent = { Icon(icon, null, tint = if (isDestructive) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.7f)) },
+        headlineContent = { Text(title, color = if (isDestructive) MaterialTheme.colorScheme.error else palette.textPrimary) },
+        leadingContent = { Icon(icon, null, tint = if (isDestructive) MaterialTheme.colorScheme.error else palette.textSecondary) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
     )
 }
@@ -536,6 +540,7 @@ fun ContextMenuItem(icon: ImageVector, title: String, onClick: () -> Unit, isDes
 
 @Composable
 fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, onCreate: (String, String, List<String>, String?) -> Unit) {
+    val palette = LocalColorPalette.current
     var step by remember { mutableIntStateOf(1) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -548,7 +553,7 @@ fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, on
     if (step == 1) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Новый плейлист", fontWeight = FontWeight.Bold, color = Color.White) },
+            title = { Text("Новый плейлист", fontWeight = FontWeight.Bold, color = palette.textPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -559,7 +564,7 @@ fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, on
                             }
                         }
                     }
-                    Text("Выберите иконку", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+                    Text("Выберите иконку", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (row in presetIcons.chunked(6)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -576,16 +581,16 @@ fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, on
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = name, onValueChange = { name = it }, label = { Text("Название плейлиста", color = Color.White.copy(alpha = 0.7f)) },
+                        value = name, onValueChange = { name = it }, label = { Text("Название плейлиста", color = palette.textSecondary) },
                         singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Icon(Icons.Default.Title, null, tint = Color.White.copy(alpha = 0.7f)) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
+                        leadingIcon = { Icon(Icons.Default.Title, null, tint = palette.textSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = palette.textPrimary, unfocusedTextColor = palette.textPrimary, cursorColor = palette.textPrimary, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f))
                     )
                     OutlinedTextField(
-                        value = description, onValueChange = { description = it }, label = { Text("Описание (необязательно)", color = Color.White.copy(alpha = 0.7f)) },
+                        value = description, onValueChange = { description = it }, label = { Text("Описание (необязательно)", color = palette.textSecondary) },
                         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
-                        leadingIcon = { Icon(Icons.Default.Description, null, tint = Color.White.copy(alpha = 0.7f)) }, minLines = 2, maxLines = 3,
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
+                        leadingIcon = { Icon(Icons.Default.Description, null, tint = palette.textSecondary) }, minLines = 2, maxLines = 3,
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = palette.textPrimary, unfocusedTextColor = palette.textPrimary, cursorColor = palette.textPrimary, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f))
                     )
                 }
             },
@@ -607,6 +612,7 @@ fun CreatePlaylistDialog(availableTracks: List<Track>, onDismiss: () -> Unit, on
 
 @Composable
 fun EditPlaylistDialog(playlist: Playlist, onDismiss: () -> Unit, onSave: (String, String, String?) -> Unit) {
+    val palette = LocalColorPalette.current
     var name by remember { mutableStateOf(playlist.name) }
     var description by remember { mutableStateOf(playlist.description) }
     var selectedIcon by remember { mutableStateOf(playlist.coverUri?.removePrefix("emoji:")?.takeIf { playlist.coverUri?.startsWith("emoji:") == true }) }
@@ -614,7 +620,7 @@ fun EditPlaylistDialog(playlist: Playlist, onDismiss: () -> Unit, onSave: (Strin
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Редактировать плейлист", fontWeight = FontWeight.Bold, color = Color.White) },
+        title = { Text("Редактировать плейлист", fontWeight = FontWeight.Bold, color = palette.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -625,7 +631,7 @@ fun EditPlaylistDialog(playlist: Playlist, onDismiss: () -> Unit, onSave: (Strin
                         }
                     }
                 }
-                Text("Иконка", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+                Text("Иконка", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (row in presetIcons.chunked(6)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -642,14 +648,14 @@ fun EditPlaylistDialog(playlist: Playlist, onDismiss: () -> Unit, onSave: (Strin
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = name, onValueChange = { name = it }, label = { Text("Название", color = Color.White.copy(alpha = 0.7f)) },
+                    value = name, onValueChange = { name = it }, label = { Text("Название", color = palette.textSecondary) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = palette.textPrimary, unfocusedTextColor = palette.textPrimary, cursorColor = palette.textPrimary, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f))
                 )
                 OutlinedTextField(
-                    value = description, onValueChange = { description = it }, label = { Text("Описание", color = Color.White.copy(alpha = 0.7f)) },
+                    value = description, onValueChange = { description = it }, label = { Text("Описание", color = palette.textSecondary) },
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), minLines = 2, maxLines = 3,
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, cursorColor = Color.White, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.White.copy(alpha = 0.3f))
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = palette.textPrimary, unfocusedTextColor = palette.textPrimary, cursorColor = palette.textPrimary, focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f))
                 )
             }
         },

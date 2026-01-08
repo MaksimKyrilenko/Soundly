@@ -22,6 +22,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,7 +40,7 @@ sealed class DownloadProgress {
     data class Fetching(val message: String) : DownloadProgress()
     data class Downloading(val progress: Float) : DownloadProgress()
     data class Converting(val message: String) : DownloadProgress()
-    data class Success(val filePath: String) : DownloadProgress()
+    data class Success(val filePath: String, val thumbnailPath: String? = null) : DownloadProgress()
     data class Error(val message: String) : DownloadProgress()
 }
 
@@ -197,16 +198,41 @@ class YouTubeService @Inject constructor() {
                     downloadedFile.copyTo(publicFile, overwrite = true)
                     downloadedFile.delete()
                     
+                    // Скачиваем обложку локально - сохраняем с именем аудиофайла
+                    var localThumbnailPath: String? = null
+                    try {
+                        val thumbnailDir = File(publicMusicDir, ".thumbnails")
+                        if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
+                        
+                        // Используем имя аудиофайла (без расширения) для обложки
+                        val audioFileName = publicFile.name.substringBeforeLast(".")
+                        val thumbnailFile = File(thumbnailDir, "$audioFileName.jpg")
+                        if (!thumbnailFile.exists() && videoInfo.thumbnail.isNotBlank()) {
+                            withContext(Dispatchers.IO) {
+                                URL(videoInfo.thumbnail).openStream().use { input ->
+                                    thumbnailFile.outputStream().use { output ->
+                                        input.copyTo(output)
+                                    }
+                                }
+                            }
+                        }
+                        if (thumbnailFile.exists()) {
+                            localThumbnailPath = thumbnailFile.absolutePath
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to download thumbnail: ${e.message}")
+                    }
+                    
                     MediaScannerConnection.scanFile(
                         context,
                         arrayOf(publicFile.absolutePath),
                         arrayOf("audio/*"),
                         null
                     )
-                    emit(DownloadProgress.Success(publicFile.absolutePath))
+                    emit(DownloadProgress.Success(publicFile.absolutePath, localThumbnailPath))
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not copy to public dir: ${e.message}")
-                    emit(DownloadProgress.Success(downloadedFile.absolutePath))
+                    emit(DownloadProgress.Success(downloadedFile.absolutePath, null))
                 }
             } else if (downloadError != null) {
                 emit(DownloadProgress.Error("Ошибка: $downloadError"))

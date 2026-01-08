@@ -55,6 +55,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val tabs = listOf("Локальные", "Популярное", "Избранное")
     val context = LocalContext.current
+    val palette = LocalColorPalette.current
     
     // Dialog states
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
@@ -103,58 +104,53 @@ fun HomeScreen(
             text = "Soundly",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = palette.textPrimary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
         
         // Search bar with glass effect
-        Surface(
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = viewModel::onSearchQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0x30FFFFFF)
-        ) {
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { 
-                    Text(
-                        "Поиск треков...",
-                        color = Color.White.copy(alpha = 0.6f)
-                    ) 
-                },
-                leadingIcon = { 
-                    Icon(
-                        Icons.Outlined.Search, 
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f)
-                    ) 
-                },
-                trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(
-                                Icons.Default.Clear, 
-                                contentDescription = "Очистить",
-                                tint = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
+            placeholder = { 
+                Text(
+                    "Поиск треков...",
+                    color = palette.textSecondary
+                ) 
+            },
+            leadingIcon = { 
+                Icon(
+                    Icons.Outlined.Search, 
+                    contentDescription = null,
+                    tint = palette.textSecondary
+                ) 
+            },
+            trailingIcon = {
+                if (uiState.searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                        Icon(
+                            Icons.Default.Clear, 
+                            contentDescription = "Очистить",
+                            tint = palette.textSecondary
+                        )
                     }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    cursorColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                )
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f),
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedContainerColor = palette.textPrimary.copy(alpha = 0.05f),
+                focusedContainerColor = palette.textPrimary.copy(alpha = 0.05f),
+                cursorColor = palette.textPrimary,
+                focusedTextColor = palette.textPrimary,
+                unfocusedTextColor = palette.textPrimary
             )
-        }
+        )
 
         // Tabs with glass effect
         Surface(
@@ -167,7 +163,7 @@ fun HomeScreen(
             TabRow(
                 selectedTabIndex = uiState.selectedTab,
                 containerColor = Color.Transparent,
-                contentColor = Color.White,
+                contentColor = palette.textPrimary,
                 indicator = { tabPositions ->
                     if (uiState.selectedTab < tabPositions.size) {
                         Box(
@@ -196,19 +192,19 @@ fun HomeScreen(
                                         tint = if (uiState.selectedTab == index) 
                                             MaterialTheme.colorScheme.primary 
                                         else 
-                                            Color.White.copy(alpha = 0.6f)
+                                            palette.textSecondary
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                 }
                                 Text(
                                     title,
                                     fontWeight = if (uiState.selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (uiState.selectedTab == index) Color.White else Color.White.copy(alpha = 0.6f)
+                                    color = if (uiState.selectedTab == index) palette.textPrimary else palette.textSecondary
                                 )
                             }
                         },
-                        selectedContentColor = Color.White,
-                        unselectedContentColor = Color.White.copy(alpha = 0.6f)
+                        selectedContentColor = palette.textPrimary,
+                        unselectedContentColor = palette.textSecondary
                     )
                 }
             }
@@ -235,7 +231,7 @@ fun HomeScreen(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f)
+                color = palette.textSecondary
             )
             TextButton(onClick = { viewModel.refreshTracks() }) {
                 Text(
@@ -355,6 +351,7 @@ fun TrackItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .clickable(onClick = onClick),
             shape = RoundedCornerShape(16.dp),
             color = Color.Transparent
@@ -417,7 +414,7 @@ fun TrackItem(
                                 barWidth = 3.dp,
                                 maxBarHeight = 20.dp,
                                 minBarHeight = 6.dp,
-                                barColor = Color.White.copy(alpha = 0.9f),
+                                barColor = palette.textPrimary,
                                 spacing = 3.dp
                             )
                         }
@@ -433,7 +430,7 @@ fun TrackItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White,
+                        color = palette.textPrimary,
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -444,7 +441,7 @@ fun TrackItem(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = palette.textSecondary
                         )
                         if (track.playCount > 0) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -482,14 +479,14 @@ fun TrackItem(
                     Text(
                         text = formatDuration(track.duration),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = palette.textSecondary
                     )
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Меню",
-                                tint = Color.White.copy(alpha = 0.7f)
+                                tint = palette.textSecondary
                             )
                         }
                         DropdownMenu(
@@ -581,6 +578,7 @@ fun EmptyState(
     message: String,
     onRequestPermission: () -> Unit = {}
 ) {
+    val palette = LocalColorPalette.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -604,7 +602,7 @@ fun EmptyState(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f)
+                color = palette.textSecondary
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
@@ -614,7 +612,7 @@ fun EmptyState(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Разрешить доступ к музыке", color = Color.White)
+                Text("Разрешить доступ к музыке", color = palette.textPrimary)
             }
         }
     }

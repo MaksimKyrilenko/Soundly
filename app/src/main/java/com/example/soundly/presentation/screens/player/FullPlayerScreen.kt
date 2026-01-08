@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.example.soundly.presentation.theme.playerGradient
 import com.example.soundly.presentation.theme.ProgressGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +45,7 @@ fun FullPlayerScreen(
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    val palette = LocalColorPalette.current
 
     LaunchedEffect(playerState.currentPosition) {
         if (!isSliding) {
@@ -71,7 +73,7 @@ fun FullPlayerScreen(
     if (showCreatePlaylistDialog) {
         AlertDialog(
             onDismissRequest = { showCreatePlaylistDialog = false },
-            title = { Text("Новый плейлист", color = Color.White) },
+            title = { Text("Новый плейлист", color = palette.textPrimary) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
@@ -80,8 +82,8 @@ fun FullPlayerScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
                     )
                 )
             },
@@ -131,7 +133,7 @@ fun FullPlayerScreen(
                         Icons.Default.KeyboardArrowDown,
                         contentDescription = "Закрыть",
                         modifier = Modifier.size(32.dp),
-                        tint = Color.White
+                        tint = palette.textPrimary
                     )
                 }
                 
@@ -139,7 +141,7 @@ fun FullPlayerScreen(
                     text = "Сейчас играет",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 
                 IconButton(onClick = { navController.navigate(Screen.Equalizer.route) }) {
@@ -201,7 +203,7 @@ fun FullPlayerScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                color = Color.White
+                color = palette.textPrimary
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -209,7 +211,7 @@ fun FullPlayerScreen(
             Text(
                 text = currentTrack?.artist ?: "",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f),
+                color = palette.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -261,9 +263,9 @@ fun FullPlayerScreen(
                     },
                     valueRange = 0f..playerState.duration.toFloat().coerceAtLeast(1f),
                     colors = SliderDefaults.colors(
-                        thumbColor = Color.White,
+                        thumbColor = palette.textPrimary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                        inactiveTrackColor = palette.textSecondary
                     )
                 )
 
@@ -274,12 +276,12 @@ fun FullPlayerScreen(
                     Text(
                         text = formatDuration(sliderPosition.toLong()),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                     Text(
                         text = formatDuration(playerState.duration),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                 }
             }
@@ -302,7 +304,7 @@ fun FullPlayerScreen(
                         tint = if (playerState.shuffleEnabled) 
                             MaterialTheme.colorScheme.primary 
                         else 
-                            Color.White.copy(alpha = 0.6f),
+                            palette.textSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -315,7 +317,7 @@ fun FullPlayerScreen(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Предыдущий",
                         modifier = Modifier.size(36.dp),
-                        tint = Color.White
+                        tint = palette.textPrimary
                     )
                 }
 
@@ -331,7 +333,7 @@ fun FullPlayerScreen(
                             imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (playerState.isPlaying) "Пауза" else "Воспроизвести",
                             modifier = Modifier.size(40.dp),
-                            tint = Color.White
+                            tint = palette.textPrimary
                         )
                     }
                 }
@@ -344,7 +346,7 @@ fun FullPlayerScreen(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Следующий",
                         modifier = Modifier.size(36.dp),
-                        tint = Color.White
+                        tint = palette.textPrimary
                     )
                 }
 
@@ -361,7 +363,7 @@ fun FullPlayerScreen(
                         tint = if (playerState.repeatMode != RepeatMode.OFF) 
                             MaterialTheme.colorScheme.primary 
                         else 
-                            Color.White.copy(alpha = 0.6f),
+                            palette.textSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -395,7 +397,7 @@ fun FullPlayerScreen(
                                 tint = if (currentTrack?.isFavorite == true) 
                                     MaterialTheme.colorScheme.primary 
                                 else 
-                                    Color.White.copy(alpha = 0.7f),
+                                    palette.textSecondary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -407,7 +409,7 @@ fun FullPlayerScreen(
                         color = if (currentTrack?.isFavorite == true)
                             MaterialTheme.colorScheme.primary
                         else
-                            Color.White.copy(alpha = 0.7f)
+                            palette.textSecondary
                     )
                 }
 
@@ -423,7 +425,7 @@ fun FullPlayerScreen(
                             Icon(
                                 imageVector = Icons.Default.PlaylistAdd,
                                 contentDescription = "Добавить в плейлист",
-                                tint = Color.White.copy(alpha = 0.7f),
+                                tint = palette.textSecondary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -432,7 +434,7 @@ fun FullPlayerScreen(
                     Text(
                         text = "Плейлист",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                 }
 
@@ -448,7 +450,7 @@ fun FullPlayerScreen(
                             Icon(
                                 imageVector = Icons.Default.Equalizer,
                                 contentDescription = "Эквалайзер",
-                                tint = Color.White.copy(alpha = 0.7f),
+                                tint = palette.textSecondary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -457,7 +459,7 @@ fun FullPlayerScreen(
                     Text(
                         text = "Эквалайзер",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                 }
             }

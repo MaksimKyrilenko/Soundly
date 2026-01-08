@@ -5,69 +5,63 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- ============================================ -->
-    <!-- SOUNDLY - Sound Wave Icon                    -->
-    <!-- ============================================ -->
-    
-    <!-- Wave bars - cyan to purple gradient effect via colors -->
-    
-    <!-- Bar 1 - far left (cyan) -->
+    <!-- Bar 1 -->
     <path
         android:pathData="M32,48L32,60"
         android:strokeWidth="4"
-        android:strokeColor="#0891B2"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 2 (cyan-ish) -->
+    <!-- Bar 2 -->
     <path
         android:pathData="M40,42L40,66"
         android:strokeWidth="4"
-        android:strokeColor="#22D3EE"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 3 (transition) -->
+    <!-- Bar 3 -->
     <path
         android:pathData="M48,36L48,72"
         android:strokeWidth="4.5"
-        android:strokeColor="#8B5CF6"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 4 - center peak (purple) -->
+    <!-- Bar 4 - center -->
     <path
         android:pathData="M54,30L54,78"
         android:strokeWidth="5"
-        android:strokeColor="#A855F7"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 5 (purple) -->
+    <!-- Bar 5 -->
     <path
         android:pathData="M60,36L60,72"
         android:strokeWidth="4.5"
-        android:strokeColor="#9333EA"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 6 (purple-ish) -->
+    <!-- Bar 6 -->
     <path
         android:pathData="M68,42L68,66"
         android:strokeWidth="4"
-        android:strokeColor="#C084FC"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Bar 7 - far right (light purple) -->
+    <!-- Bar 7 -->
     <path
         android:pathData="M76,48L76,60"
         android:strokeWidth="4"
-        android:strokeColor="#D8B4FE"
+        android:strokeColor="#FFFFFF"
         android:strokeLineCap="round"/>
     
-    <!-- Top accent dot -->
+    <!-- Top dot -->
     <path
         android:pathData="M54,24m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
-        android:fillColor="#22D3EE"/>
+        android:fillColor="#FFFFFF"/>
     
-    <!-- Bottom accent dot -->
+    <!-- Bottom dot -->
     <path
         android:pathData="M54,84m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
-        android:fillColor="#A855F7"/>
+        android:fillColor="#FFFFFF"/>
     
 </vector>

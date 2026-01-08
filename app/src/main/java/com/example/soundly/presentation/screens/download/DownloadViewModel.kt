@@ -189,7 +189,7 @@ class DownloadViewModel @Inject constructor(
                             id = System.currentTimeMillis().toString(),
                             title = state.customTitle,
                             artist = state.customArtist,
-                            thumbnail = videoInfo.thumbnail,
+                            thumbnail = progress.thumbnailPath ?: videoInfo.thumbnail,
                             url = state.url,
                             status = DownloadStatus.COMPLETED,
                             progress = 1f,
@@ -211,16 +211,25 @@ class DownloadViewModel @Inject constructor(
                         // Конвертируем путь в file:// URI для плеера (с тремя слэшами)
                         val fileUri = "file://${progress.filePath}"
                         
+                        // Используем локальный путь к обложке если есть, иначе URL
+                        val artworkUri = if (progress.thumbnailPath != null) {
+                            "file://${progress.thumbnailPath}"
+                        } else {
+                            videoInfo.thumbnail
+                        }
+                        
                         // Добавляем трек напрямую в базу данных с метаданными
+                        // Используем стабильный ID на основе пути файла (совпадает с ID при сканировании MediaStore)
                         viewModelScope.launch {
                             try {
+                                val trackId = "soundly_${progress.filePath.hashCode()}"
                                 val track = com.example.soundly.domain.model.Track(
-                                    id = "yt_${videoInfo.id}_${System.currentTimeMillis()}",
+                                    id = trackId,
                                     title = state.customTitle,
                                     artist = state.customArtist.ifBlank { "Неизвестный исполнитель" },
                                     album = "YouTube",
                                     duration = duration,
-                                    artworkUri = videoInfo.thumbnail,
+                                    artworkUri = artworkUri,
                                     uri = fileUri,
                                     isLocal = true,
                                     dateAdded = System.currentTimeMillis()

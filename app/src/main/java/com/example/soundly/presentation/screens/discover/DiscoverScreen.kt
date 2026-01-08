@@ -16,9 +16,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @Composable
 fun DiscoverScreen(navController: NavController) {
+    val palette = LocalColorPalette.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -32,7 +34,7 @@ fun DiscoverScreen(navController: NavController) {
                 text = "Открыть",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = palette.textPrimary,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -66,7 +68,7 @@ fun DiscoverScreen(navController: NavController) {
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                color = Color.White
+                color = palette.textPrimary
             )
         }
 
@@ -77,7 +79,7 @@ fun DiscoverScreen(navController: NavController) {
             Text(
                 text = "Скоро здесь появятся умные рекомендации\nна основе вашей истории прослушивания",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f),
+                color = palette.textSecondary,
                 textAlign = TextAlign.Center
             )
         }
@@ -87,9 +89,9 @@ fun DiscoverScreen(navController: NavController) {
         // Features list
         item {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Анализ ваших музыкальных предпочтений")
-                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Подбор похожих треков и артистов")
-                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Персональные плейлисты каждый день")
+                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Анализ ваших музыкальных предпочтений", textColor = palette.textPrimary)
+                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Подбор похожих треков и артистов", textColor = palette.textPrimary)
+                FeatureRow(icon = Icons.Default.AutoAwesome, text = "Персональные плейлисты каждый день", textColor = palette.textPrimary)
             }
         }
 
@@ -111,7 +113,7 @@ fun DiscoverScreen(navController: NavController) {
                         text = "Скоро", 
                         style = MaterialTheme.typography.labelLarge, 
                         fontWeight = FontWeight.Medium,
-                        color = Color.White
+                        color = palette.textPrimary
                     )
                 }
             }
@@ -122,7 +124,7 @@ fun DiscoverScreen(navController: NavController) {
 }
 
 @Composable
-fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, textColor: androidx.compose.ui.graphics.Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
@@ -134,7 +136,7 @@ fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Stri
         Text(
             text = text, 
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White
+            color = textColor
         )
     }
 }

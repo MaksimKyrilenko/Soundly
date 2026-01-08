@@ -2,8 +2,10 @@ package com.example.soundly.presentation.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.soundly.presentation.navigation.Screen
+import com.example.soundly.presentation.theme.LocalColorPalette
 import com.example.soundly.presentation.theme.backgroundGradient
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +32,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
+    val palette = LocalColorPalette.current
 
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
@@ -41,10 +45,10 @@ fun LoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Вход", color = Color.White) },
+                title = { Text("Вход", color = palette.textPrimary) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = palette.textPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -57,6 +61,8 @@ fun LoginScreen(
                 .fillMaxSize()
                 .background(backgroundGradient())
                 .padding(paddingValues)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -65,7 +71,7 @@ fun LoginScreen(
             Surface(
                 modifier = Modifier.size(100.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0x40FFFFFF)
+                color = palette.textPrimary.copy(alpha = 0.15f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -82,88 +88,86 @@ fun LoginScreen(
             Text(
                 text = "SOUNDLY",
                 style = MaterialTheme.typography.headlineLarge,
-                color = Color.White
+                color = palette.textPrimary
             )
 
             Text(
                 text = "Войдите в свой аккаунт",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f)
+                color = palette.textSecondary
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Email field with glass effect
-            Surface(
+            // Email field
+            OutlinedTextField(
+                value = uiState.email,
+                onValueChange = viewModel::onEmailChange,
                 modifier = Modifier.fillMaxWidth(),
+                label = { Text("Email") },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Default.Email, 
+                        contentDescription = null,
+                        tint = palette.textSecondary
+                    ) 
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0x30FFFFFF)
-            ) {
-                OutlinedTextField(
-                    value = uiState.email,
-                    onValueChange = viewModel::onEmailChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Email", color = Color.White.copy(alpha = 0.7f)) },
-                    leadingIcon = { 
-                        Icon(
-                            Icons.Default.Email, 
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.7f)
-                        ) 
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        cursorColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    )
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = palette.textPrimary,
+                    focusedTextColor = palette.textPrimary,
+                    unfocusedTextColor = palette.textPrimary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = palette.textSecondary,
+                    focusedContainerColor = palette.textPrimary.copy(alpha = 0.05f),
+                    unfocusedContainerColor = palette.textPrimary.copy(alpha = 0.05f)
                 )
-            }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password field with glass effect
-            Surface(
+            // Password field
+            OutlinedTextField(
+                value = uiState.password,
+                onValueChange = viewModel::onPasswordChange,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0x30FFFFFF)
-            ) {
-                OutlinedTextField(
-                    value = uiState.password,
-                    onValueChange = viewModel::onPasswordChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Пароль", color = Color.White.copy(alpha = 0.7f)) },
-                    leadingIcon = { 
+                label = { Text("Пароль") },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Default.Lock, 
+                        contentDescription = null,
+                        tint = palette.textSecondary
+                    ) 
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            Icons.Default.Lock, 
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.7f)
-                        ) 
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль",
-                                tint = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                    },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        cursorColor = Color.White,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    )
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (passwordVisible) "Скрыть пароль" else "Показать пароль",
+                            tint = palette.textSecondary
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = palette.textPrimary,
+                    focusedTextColor = palette.textPrimary,
+                    unfocusedTextColor = palette.textPrimary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = palette.textSecondary,
+                    focusedContainerColor = palette.textPrimary.copy(alpha = 0.05f),
+                    unfocusedContainerColor = palette.textPrimary.copy(alpha = 0.05f)
                 )
-            }
+            )
 
             uiState.error?.let { error ->
                 Spacer(modifier = Modifier.height(8.dp))

@@ -50,7 +50,7 @@ fun ProfileScreen(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Редактировать профиль", color = Color.White) },
+            title = { Text("Редактировать профиль", color = palette.textPrimary) },
             text = {
                 OutlinedTextField(
                     value = editName,
@@ -59,12 +59,12 @@ fun ProfileScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary,
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        unfocusedBorderColor = palette.textSecondary,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                        unfocusedLabelColor = palette.textSecondary
                     )
                 )
             },
@@ -153,7 +153,7 @@ fun ProfileScreen(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
                                     modifier = Modifier.size(48.dp),
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    tint = palette.textSecondary
                                 )
                             }
                         }
@@ -167,17 +167,17 @@ fun ProfileScreen(
                         text = uiState.userName ?: "Пользователь",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = palette.textPrimary
                     )
                     Text(
                         text = uiState.userEmail ?: "",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                     Text(
                         text = "В Soundly с ${formatDate(System.currentTimeMillis())}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = palette.textSecondary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -206,12 +206,12 @@ fun ProfileScreen(
                         text = "Гость",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = palette.textPrimary
                     )
                     Text(
                         text = "Войдите для синхронизации данных",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -223,7 +223,7 @@ fun ProfileScreen(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Войти в аккаунт", color = Color.White)
+                        Text("Войти в аккаунт", color = palette.textPrimary)
                     }
                 }
             }
@@ -371,17 +371,18 @@ fun SectionTitle(title: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun StatItem(value: String, label: String) {
+    val palette = LocalColorPalette.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = palette.textPrimary
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.7f)
+            color = palette.textSecondary
         )
     }
 }
@@ -439,18 +440,18 @@ fun ActionItem(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = palette.textSecondary
                 )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.5f)
+                tint = palette.textSecondary
             )
         }
         }
@@ -509,18 +510,18 @@ fun SettingItem(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = palette.textSecondary
                 )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.5f)
+                tint = palette.textSecondary
             )
         }
         }
@@ -578,7 +579,7 @@ fun SwitchSettingItem(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f),
-                color = Color.White
+                color = palette.textPrimary
             )
             Switch(
                 checked = checked,
@@ -649,12 +650,12 @@ fun ColorPaletteSelector(
                             text = "Цветовая палитра",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = palette.textPrimary
                         )
                         Text(
                             text = ColorPalette.fromId(selectedPalette).description,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = palette.textSecondary
                         )
                     }
                 }

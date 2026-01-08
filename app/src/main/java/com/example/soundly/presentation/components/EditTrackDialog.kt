@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.soundly.domain.model.Track
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @Composable
 fun EditTrackDialog(
@@ -19,6 +20,7 @@ fun EditTrackDialog(
     var title by remember { mutableStateOf(track.title) }
     var artist by remember { mutableStateOf(track.artist) }
     var album by remember { mutableStateOf(track.album) }
+    val palette = LocalColorPalette.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -26,7 +28,7 @@ fun EditTrackDialog(
             Text(
                 "Редактировать трек", 
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.textPrimary
             ) 
         },
         text = {
@@ -34,46 +36,46 @@ fun EditTrackDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Название", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Название", color = palette.textSecondary) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary,
+                        cursorColor = palette.textPrimary,
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                        unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f)
                     )
                 )
                 OutlinedTextField(
                     value = artist,
                     onValueChange = { artist = it },
-                    label = { Text("Исполнитель", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Исполнитель", color = palette.textSecondary) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary,
+                        cursorColor = palette.textPrimary,
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                        unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f)
                     )
                 )
                 OutlinedTextField(
                     value = album,
                     onValueChange = { album = it },
-                    label = { Text("Альбом", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Альбом", color = palette.textSecondary) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary,
+                        cursorColor = palette.textPrimary,
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                        unfocusedBorderColor = palette.textSecondary.copy(alpha = 0.3f)
                     )
                 )
             }
@@ -96,7 +98,7 @@ fun EditTrackDialog(
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color(0xFF2A2355)
+        containerColor = palette.cardMid
     )
 }
 
@@ -107,10 +109,12 @@ fun DeleteConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val palette = LocalColorPalette.current
+    
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, fontWeight = FontWeight.Bold, color = Color.White) },
-        text = { Text(message, color = Color.White.copy(alpha = 0.7f)) },
+        title = { Text(title, fontWeight = FontWeight.Bold, color = palette.textPrimary) },
+        text = { Text(message, color = palette.textSecondary) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
@@ -128,6 +132,6 @@ fun DeleteConfirmDialog(
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color(0xFF2A2355)
+        containerColor = palette.cardMid
     )
 }

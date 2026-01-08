@@ -29,6 +29,9 @@ class TrackRepositoryImpl @Inject constructor(
 ) : TrackRepository {
 
     private val postgrest = SupabaseClientProvider.postgrest
+    
+    // Список путей файлов которые были удалены - чтобы не добавлять их обратно при сканировании
+    private val deletedFilePaths = mutableSetOf<String>()
 
     override fun getAllTracks(): Flow<List<Track>> =
         trackDao.getAllTracks().map { entities -> entities.map { it.toDomain() } }
@@ -120,7 +123,8 @@ class TrackRepositoryImpl @Inject constructor(
                     Uri.parse("content://media/external/audio/albumart"), albumId
                 ).toString()
                 
-                // Для треков из папки Soundly пробуем распарсить имя файла
+                // Для треков из папки Soundly пробуем распарсить имя файла и создаём специальный ID
+                var trackId = id.toString()
                 if (filePath.contains("/Soundly/") && (artist == "Unknown Artist" || artist == "<unknown>")) {
                     val fileName = filePath.substringAfterLast("/").substringBeforeLast(".")
                     if (fileName.contains(" - ")) {
@@ -130,15 +134,50 @@ class TrackRepositoryImpl @Inject constructor(
                             title = parts[1].trim()
                         }
                     }
+                    // Создаём стабильный ID на основе пути файла для треков из Soundly
+                    trackId = "soundly_${filePath.hashCode()}"
+                }
+                
+                // Для треков из Soundly папки ищем локальную обложку
+                var finalArtworkUri = artworkUri
+                if (filePath.contains("/Soundly/")) {
+                    // Имя аудиофайла без расширения
+                    val audioFileName = filePath.substringAfterLast("/").substringBeforeLast(".")
+                    
+                    // Определяем где искать обложку
+                    val soundlyDir = filePath.substringBefore("/Soundly/") + "/Soundly"
+                    
+                    // Для экспортов ищем в Exports/.thumbnails, для остальных в .thumbnails
+                    val thumbnailDir = if (filePath.contains("/Exports/")) {
+                        java.io.File(soundlyDir, "Exports/.thumbnails")
+                    } else {
+                        java.io.File(soundlyDir, ".thumbnails")
+                    }
+                    
+                    if (thumbnailDir.exists()) {
+                        // Ищем обложку с точно таким же именем
+                        val exactMatch = thumbnailDir.listFiles()?.firstOrNull { thumbFile ->
+                            val thumbName = thumbFile.name.substringBeforeLast(".")
+                            thumbName == audioFileName && 
+                            (thumbFile.name.endsWith(".jpg") || thumbFile.name.endsWith(".png"))
+                        }
+                        
+                        if (exactMatch != null) {
+                            finalArtworkUri = "file://${exactMatch.absolutePath}"
+                            android.util.Log.d("TrackRepo", "Found exact thumbnail for $audioFileName: ${exactMatch.absolutePath}")
+                        } else {
+                            android.util.Log.d("TrackRepo", "No thumbnail found for $audioFileName in ${thumbnailDir.absolutePath}")
+                        }
+                    }
                 }
 
                 val track = Track(
-                    id = id.toString(),
+                    id = trackId,
                     title = title,
                     artist = artist,
                     album = album,
                     duration = duration,
-                    artworkUri = artworkUri,
+                    artworkUri = finalArtworkUri,
                     uri = contentUri.toString(),
                     isLocal = true,
                     dateAdded = dateAdded
@@ -148,67 +187,85 @@ class TrackRepositoryImpl @Inject constructor(
             }
         }
 
-        // Получаем существующие треки чтобы сохранить их состояние (избранное, playCount, и YouTube/экспортированные треки)
+        // Получаем существующие треки чтобы сохранить их состояние (избранное, playCount, artworkUri и т.д.)
         val existingTracks = trackDao.getAllTracksOnce().associateBy { it.id }
         
         android.util.Log.d("TrackRepo", "Existing tracks count: ${existingTracks.size}")
-        android.util.Log.d("TrackRepo", "Existing exp_ tracks: ${existingTracks.values.filter { it.id.startsWith("exp_") }.map { "${it.id} -> ${it.uri}" }}")
         
-        // Собираем пути файлов YouTube и экспортированных треков для проверки дубликатов
-        val customTrackPaths = existingTracks.values
-            .filter { it.id.startsWith("yt_") || it.id.startsWith("exp_") }
-            .mapNotNull { entity ->
-                // Извлекаем путь из URI (поддерживаем разные форматы)
-                val path = extractFilePath(entity.uri)
-                android.util.Log.d("TrackRepo", "Custom track: ${entity.id}, uri=${entity.uri}, extractedPath=$path")
-                path
+        // Собираем пути файлов существующих soundly треков для проверки
+        val existingSoundlyPaths = mutableMapOf<String, TrackEntity>()
+        existingTracks.values.filter { it.id.startsWith("soundly_") }.forEach { entity ->
+            extractFilePath(entity.uri)?.let { path ->
+                existingSoundlyPaths[path] = entity
             }
-            .toSet()
-        
-        android.util.Log.d("TrackRepo", "Custom track paths (YT + Exported): $customTrackPaths")
-        
-        // Фильтруем MediaStore треки - исключаем те, что уже есть как YouTube/экспортированные треки
-        // Также исключаем ВСЕ треки из папки Soundly/Exports - они должны добавляться только через экспорт
-        val filteredTracks = tracksWithPaths
-            .filter { (track, filePath) -> 
-                // Исключаем все треки из папки экспорта - они управляются приложением
-                if (filePath.contains("/Soundly/Exports/")) {
-                    android.util.Log.d("TrackRepo", "Skipping MediaStore track from Exports folder: $filePath")
-                    return@filter false
-                }
-                
-                val dominated = customTrackPaths.contains(filePath)
-                if (dominated) {
-                    android.util.Log.d("TrackRepo", "Skipping MediaStore track (duplicate of custom): $filePath")
-                }
-                !dominated
-            }
-            .map { it.first }
-        
-        // Собираем ID треков из отфильтрованного MediaStore
-        val mediaStoreIds = filteredTracks.map { it.id }.toSet()
-        
-        // Сохраняем YouTube и экспортированные треки (которых нет в MediaStore)
-        val customTracksToKeep = existingTracks.values.filter { 
-            it.id.startsWith("yt_") || it.id.startsWith("exp_") || !mediaStoreIds.contains(it.id)
         }
         
-        // Обновляем треки из MediaStore, сохраняя состояние
-        val tracksToInsert = filteredTracks.map { track ->
-            val existing = existingTracks[track.id]
-            TrackEntity.fromDomain(track.copy(
-                isFavorite = existing?.isFavorite ?: false,
-                playCount = existing?.playCount ?: 0,
-                lastPlayedAt = existing?.lastPlayedAt
-            ))
-        } + customTracksToKeep
+        // Обрабатываем треки из MediaStore
+        val processedTracks = mutableListOf<TrackEntity>()
+        val processedPaths = mutableSetOf<String>()
         
-        trackDao.insertTracks(tracksToInsert)
+        for ((track, filePath) in tracksWithPaths) {
+            // Пропускаем файлы которые были удалены
+            if (deletedFilePaths.contains(filePath)) {
+                android.util.Log.d("TrackRepo", "Skipping deleted file: $filePath")
+                // Проверяем существует ли файл - если нет, убираем из списка удалённых
+                if (!java.io.File(filePath).exists()) {
+                    deletedFilePaths.remove(filePath)
+                }
+                continue
+            }
+            
+            // Пропускаем дубликаты по пути
+            if (processedPaths.contains(filePath)) {
+                android.util.Log.d("TrackRepo", "Skipping duplicate path: $filePath")
+                continue
+            }
+            processedPaths.add(filePath)
+            
+            // Для треков из Soundly папки - проверяем есть ли уже в БД
+            if (track.id.startsWith("soundly_")) {
+                val existingEntity = existingTracks[track.id]
+                if (existingEntity != null) {
+                    // Сохраняем существующие метаданные (artworkUri, title, artist) но обновляем uri
+                    val updatedEntity = existingEntity.copy(
+                        uri = track.uri // Обновляем URI на случай если изменился
+                    )
+                    processedTracks.add(updatedEntity)
+                    android.util.Log.d("TrackRepo", "Keeping existing soundly track: ${track.id}")
+                } else {
+                    // Новый трек из Soundly папки - добавляем с распарсенными метаданными
+                    processedTracks.add(TrackEntity.fromDomain(track))
+                    android.util.Log.d("TrackRepo", "Adding new soundly track: ${track.id}")
+                }
+            } else {
+                // Обычный MediaStore трек
+                val existing = existingTracks[track.id]
+                processedTracks.add(TrackEntity.fromDomain(track.copy(
+                    isFavorite = existing?.isFavorite ?: false,
+                    playCount = existing?.playCount ?: 0,
+                    lastPlayedAt = existing?.lastPlayedAt
+                )))
+            }
+        }
+        
+        // Добавляем soundly треки которых нет в MediaStore (файл удалён?)
+        existingTracks.values
+            .filter { it.id.startsWith("soundly_") && !processedPaths.contains(extractFilePath(it.uri)) }
+            .forEach { entity ->
+                // Проверяем существует ли файл
+                val filePath = extractFilePath(entity.uri)
+                if (filePath != null && java.io.File(filePath).exists()) {
+                    processedTracks.add(entity)
+                    android.util.Log.d("TrackRepo", "Keeping soundly track not in MediaStore: ${entity.id}")
+                }
+            }
+        
+        trackDao.insertTracks(processedTracks)
         
         // Sync favorites from cloud
         syncFavoritesFromCloud()
         
-        filteredTracks
+        processedTracks.map { it.toDomain() }
     }
 
     override suspend fun insertTrack(track: Track) {
@@ -216,39 +273,115 @@ class TrackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteTrack(trackId: String) {
-        // Получаем трек перед удалением
-        val track = trackDao.getTrackById(trackId)
-        
-        // Удаляем из базы данных
-        trackDao.deleteTrackById(trackId)
-        
-        // Пытаемся удалить файл
-        track?.let {
-            try {
+        withContext(Dispatchers.IO) {
+            val track = trackDao.getTrackById(trackId)
+            
+            android.util.Log.d("TrackRepo", "=== DELETE TRACK ===")
+            android.util.Log.d("TrackRepo", "Track ID: $trackId")
+            
+            track?.let {
                 val uri = it.uri
+                android.util.Log.d("TrackRepo", "URI: $uri")
                 
-                // Для YouTube треков (файл по пути или file:// URI)
-                if (it.id.startsWith("yt_") || uri.startsWith("/") || uri.startsWith("file:")) {
-                    val filePath = extractFilePath(uri)
-                    if (filePath != null) {
-                        val file = java.io.File(filePath)
-                        if (file.exists()) {
-                            file.delete()
-                            android.util.Log.d("TrackRepo", "Deleted file: $filePath")
-                        }
-                    }
-                } else {
-                    // Для MediaStore треков
+                // Извлекаем путь к файлу
+                var filePath: String? = null
+                var mediaStoreUri: android.net.Uri? = null
+                
+                if (uri.startsWith("file://")) {
+                    filePath = uri.removePrefix("file://")
+                } else if (uri.startsWith("/")) {
+                    filePath = uri
+                } else if (uri.startsWith("content://")) {
+                    mediaStoreUri = android.net.Uri.parse(uri)
                     try {
-                        context.contentResolver.delete(android.net.Uri.parse(uri), null, null)
-                    } catch (e: SecurityException) {
-                        // На Android 10+ нужно разрешение на удаление
-                        android.util.Log.w("TrackRepo", "Cannot delete file: ${e.message}")
+                        context.contentResolver.query(
+                            mediaStoreUri!!,
+                            arrayOf(MediaStore.Audio.Media.DATA),
+                            null, null, null
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                filePath = cursor.getString(0)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("TrackRepo", "Query error: ${e.message}")
                     }
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("TrackRepo", "Error deleting file", e)
+                
+                android.util.Log.d("TrackRepo", "File path: $filePath")
+                
+                // Ищем MediaStore URI по пути если ещё не нашли
+                if (filePath != null && mediaStoreUri == null) {
+                    try {
+                        context.contentResolver.query(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            arrayOf(MediaStore.Audio.Media._ID),
+                            "${MediaStore.Audio.Media.DATA} = ?",
+                            arrayOf(filePath),
+                            null
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                val id = cursor.getLong(0)
+                                mediaStoreUri = ContentUris.withAppendedId(
+                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("TrackRepo", "Find MediaStore error: ${e.message}")
+                    }
+                }
+                
+                android.util.Log.d("TrackRepo", "MediaStore URI: $mediaStoreUri")
+                
+                // 1. Удаляем файл напрямую
+                var fileDeleted = false
+                if (filePath != null) {
+                    val file = java.io.File(filePath!!)
+                    if (file.exists()) {
+                        fileDeleted = file.delete()
+                        android.util.Log.d("TrackRepo", "File.delete(): $fileDeleted")
+                    }
+                }
+                
+                // 2. Удаляем из MediaStore по URI
+                if (mediaStoreUri != null) {
+                    try {
+                        val deleted = context.contentResolver.delete(mediaStoreUri!!, null, null)
+                        android.util.Log.d("TrackRepo", "MediaStore delete by URI: $deleted")
+                    } catch (e: Exception) {
+                        android.util.Log.w("TrackRepo", "Delete by URI error: ${e.message}")
+                    }
+                }
+                
+                // 3. Удаляем из MediaStore по пути
+                if (filePath != null) {
+                    try {
+                        val deleted = context.contentResolver.delete(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            "${MediaStore.Audio.Media.DATA} = ?",
+                            arrayOf(filePath)
+                        )
+                        android.util.Log.d("TrackRepo", "MediaStore delete by path: $deleted")
+                    } catch (e: Exception) {
+                        android.util.Log.w("TrackRepo", "Delete by path error: ${e.message}")
+                    }
+                }
+                
+                // 4. Добавляем в список удалённых
+                if (filePath != null) {
+                    deletedFilePaths.add(filePath!!)
+                }
+                
+                // 5. Уведомляем MediaScanner
+                if (filePath != null) {
+                    android.media.MediaScannerConnection.scanFile(context, arrayOf(filePath), null, null)
+                }
             }
+            
+            // 6. Удаляем из БД
+            trackDao.deleteTrackById(trackId)
+            android.util.Log.d("TrackRepo", "Deleted from DB")
         }
     }
     
@@ -260,6 +393,22 @@ class TrackRepositoryImpl @Inject constructor(
             uri.startsWith("file:///") -> uri.removePrefix("file://")
             uri.startsWith("file:/") -> uri.removePrefix("file:")
             uri.startsWith("/") -> uri
+            uri.startsWith("content://media/") -> {
+                // Для content:// URI пробуем получить путь через ContentResolver
+                try {
+                    context.contentResolver.query(
+                        android.net.Uri.parse(uri),
+                        arrayOf(MediaStore.Audio.Media.DATA),
+                        null, null, null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            cursor.getString(0)
+                        } else null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
             else -> null
         }
     }

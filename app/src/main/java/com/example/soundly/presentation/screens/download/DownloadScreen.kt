@@ -51,7 +51,7 @@ fun DownloadScreen(
                 text = "Скачать",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.textPrimary
             )
         }
 
@@ -85,7 +85,7 @@ fun DownloadScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Download,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = palette.textPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -96,12 +96,12 @@ fun DownloadScreen(
                                 text = "Скачать с YouTube",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White
+                                color = palette.textPrimary
                             )
                             Text(
                                 text = "Вставьте ссылку на видео",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = palette.textSecondary
                             )
                         }
                     }
@@ -113,12 +113,12 @@ fun DownloadScreen(
                         value = uiState.url,
                         onValueChange = viewModel::onUrlChange,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("https://youtube.com/watch?v=...", color = Color.White.copy(alpha = 0.5f)) },
+                        placeholder = { Text("https://youtube.com/watch?v=...", color = palette.textSecondary) },
                         leadingIcon = { 
                             Icon(
                                 Icons.Outlined.Link, 
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.7f)
+                                tint = palette.textSecondary
                             ) 
                         },
                         trailingIcon = {
@@ -127,7 +127,7 @@ fun DownloadScreen(
                                     Icon(
                                         Icons.Default.Clear,
                                         contentDescription = "Очистить",
-                                        tint = Color.White.copy(alpha = 0.7f)
+                                        tint = palette.textSecondary
                                     )
                                 }
                             }
@@ -136,11 +136,11 @@ fun DownloadScreen(
                         shape = RoundedCornerShape(12.dp),
                         enabled = !uiState.isDownloading && !uiState.isFetching,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                            unfocusedBorderColor = palette.textSecondary,
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            cursorColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            cursorColor = palette.textPrimary,
+                            focusedTextColor = palette.textPrimary,
+                            unfocusedTextColor = palette.textPrimary
                         )
                     )
                     
@@ -156,13 +156,13 @@ fun DownloadScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color.White
+                                    color = palette.textPrimary
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = "Получение информации...",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = 0.7f)
+                                    color = palette.textSecondary
                                 )
                             }
                         }
@@ -202,13 +202,13 @@ fun DownloadScreen(
                                             fontWeight = FontWeight.Medium,
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis,
-                                            color = Color.White
+                                            color = palette.textPrimary
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = info.author,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.White.copy(alpha = 0.7f),
+                                            color = palette.textSecondary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -222,25 +222,25 @@ fun DownloadScreen(
                                     value = uiState.customTitle,
                                     onValueChange = viewModel::onTitleChange,
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("Название трека", color = Color.White.copy(alpha = 0.7f)) },
+                                    label = { Text("Название трека", color = palette.textSecondary) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Outlined.MusicNote,
                                             contentDescription = null,
-                                            tint = Color.White.copy(alpha = 0.7f)
+                                            tint = palette.textSecondary
                                         )
                                     },
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
                                     enabled = !uiState.isDownloading,
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                                        unfocusedBorderColor = palette.textSecondary,
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        cursorColor = Color.White,
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
+                                        cursorColor = palette.textPrimary,
+                                        focusedTextColor = palette.textPrimary,
+                                        unfocusedTextColor = palette.textPrimary,
                                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                        unfocusedLabelColor = palette.textSecondary
                                     )
                                 )
                                 
@@ -250,25 +250,25 @@ fun DownloadScreen(
                                     value = uiState.customArtist,
                                     onValueChange = viewModel::onArtistChange,
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("Исполнитель", color = Color.White.copy(alpha = 0.7f)) },
+                                    label = { Text("Исполнитель", color = palette.textSecondary) },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Outlined.Person,
                                             contentDescription = null,
-                                            tint = Color.White.copy(alpha = 0.7f)
+                                            tint = palette.textSecondary
                                         )
                                     },
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
                                     enabled = !uiState.isDownloading,
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                                        unfocusedBorderColor = palette.textSecondary,
                                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        cursorColor = Color.White,
-                                        focusedTextColor = Color.White,
-                                        unfocusedTextColor = Color.White,
+                                        cursorColor = palette.textPrimary,
+                                        focusedTextColor = palette.textPrimary,
+                                        unfocusedTextColor = palette.textPrimary,
                                         focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                        unfocusedLabelColor = palette.textSecondary
                                     )
                                 )
                             }
@@ -287,13 +287,13 @@ fun DownloadScreen(
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
                                 color = MaterialTheme.colorScheme.primary,
-                                trackColor = Color.White.copy(alpha = 0.2f)
+                                trackColor = palette.textSecondary.copy(alpha = 0.3f)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = uiState.statusMessage.ifEmpty { "Загрузка..." },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = palette.textSecondary
                             )
                         }
                     } else {
@@ -307,10 +307,10 @@ fun DownloadScreen(
                                 Icons.Default.Download, 
                                 contentDescription = null, 
                                 modifier = Modifier.size(20.dp),
-                                tint = Color.White
+                                tint = palette.textPrimary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Скачать MP3", color = Color.White)
+                            Text("Скачать MP3", color = palette.textPrimary)
                         }
                     }
 
@@ -414,7 +414,7 @@ fun DownloadScreen(
                                 Text(
                                     text = message,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White
+                                    color = palette.textPrimary
                                 )
                             }
                         }
@@ -455,7 +455,7 @@ fun DownloadScreen(
                             text = "Как это работает", 
                             style = MaterialTheme.typography.titleMedium, 
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            color = palette.textPrimary
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -467,7 +467,7 @@ fun DownloadScreen(
                     Text(
                         text = "Файлы сохраняются в папку Music/Soundly",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.textSecondary
                     )
                 }
                 }
@@ -481,7 +481,7 @@ fun DownloadScreen(
                     text = "Недавние загрузки",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
             }
             items(uiState.recentDownloads) { download ->
@@ -510,7 +510,7 @@ fun HowItWorksStep(number: Int, text: String) {
                     text = "$number",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
             }
         }
@@ -519,7 +519,7 @@ fun HowItWorksStep(number: Int, text: String) {
             text = text, 
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 2.dp),
-            color = Color.White
+            color = palette.textPrimary
         )
     }
 }

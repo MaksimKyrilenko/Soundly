@@ -160,7 +160,7 @@ fun SoundlyAppContent() {
                                     },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.primary,
-                                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                                        unselectedIconColor = palette.textSecondary,
                                         indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                     )
                                 )

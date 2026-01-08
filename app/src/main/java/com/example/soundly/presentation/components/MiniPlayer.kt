@@ -122,7 +122,7 @@ fun MiniPlayer(
                                         barWidth = 4.dp,
                                         maxBarHeight = 24.dp,
                                         minBarHeight = 8.dp,
-                                        barColor = Color.White.copy(alpha = 0.9f),
+                                        barColor = palette.textPrimary,
                                         spacing = 3.dp
                                     )
                                 }
@@ -140,13 +140,13 @@ fun MiniPlayer(
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    color = Color.White
+                                    color = palette.textPrimary
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = track.artist,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = palette.textSecondary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -173,7 +173,7 @@ fun MiniPlayer(
                                         imageVector = Icons.Default.SkipPrevious,
                                         contentDescription = "Предыдущий",
                                         modifier = Modifier.size(24.dp),
-                                        tint = Color.White
+                                        tint = palette.textPrimary
                                     )
                                 }
 
@@ -188,7 +188,7 @@ fun MiniPlayer(
                                         Icon(
                                             imageVector = if (playerState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = if (playerState.isPlaying) "Пауза" else "Воспроизвести",
-                                            tint = Color.White,
+                                            tint = palette.textPrimary,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -203,7 +203,7 @@ fun MiniPlayer(
                                         imageVector = Icons.Default.SkipNext,
                                         contentDescription = "Следующий",
                                         modifier = Modifier.size(24.dp),
-                                        tint = Color.White
+                                        tint = palette.textPrimary
                                     )
                                 }
                             }
@@ -216,7 +216,7 @@ fun MiniPlayer(
                                 .height(3.dp)
                                 .padding(horizontal = 12.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(alpha = 0.2f))
+                                .background(palette.textSecondary.copy(alpha = 0.3f))
                         ) {
                             Box(
                                 modifier = Modifier

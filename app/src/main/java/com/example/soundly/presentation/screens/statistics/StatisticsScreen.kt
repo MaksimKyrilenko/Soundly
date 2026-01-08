@@ -22,6 +22,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.theme.backgroundGradient
+import com.example.soundly.presentation.theme.LocalColorPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,19 +31,20 @@ fun StatisticsScreen(
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val palette = LocalColorPalette.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Статистика", color = Color.White) },
+                title = { Text("Статистика", color = palette.textPrimary) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад", tint = palette.textPrimary)
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.clearHistory() }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "Очистить историю", tint = Color.White)
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "Очистить историю", tint = palette.textPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -70,7 +72,7 @@ fun StatisticsScreen(
                 Text(
                     text = "Топ прослушиваемых",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = palette.textPrimary,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -99,12 +101,12 @@ fun StatisticsScreen(
                                 Text(
                                     text = "Нет данных",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White
+                                    color = palette.textPrimary
                                 )
                                 Text(
                                     text = "Начните слушать музыку",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.7f)
+                                    color = palette.textSecondary
                                 )
                             }
                         }
@@ -128,6 +130,7 @@ fun StatsOverviewCard(
     totalTracks: Int,
     favoriteGenre: String?
 ) {
+    val palette = LocalColorPalette.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -137,7 +140,7 @@ fun StatsOverviewCard(
             Text(
                 text = "Обзор",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White
+                color = palette.textPrimary
             )
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -171,6 +174,7 @@ fun StatColumn(
     value: String,
     label: String
 ) {
+    val palette = LocalColorPalette.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = icon,
@@ -188,13 +192,14 @@ fun StatColumn(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.7f)
+            color = palette.textSecondary
         )
     }
 }
 
 @Composable
 fun TopTrackItem(track: Track, rank: Int) {
+    val palette = LocalColorPalette.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -237,12 +242,12 @@ fun TopTrackItem(track: Track, rank: Int) {
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color.White
+                    color = palette.textPrimary
                 )
                 Text(
                     text = track.artist,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = palette.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -258,7 +263,7 @@ fun TopTrackItem(track: Track, rank: Int) {
                 Text(
                     text = "прослушиваний",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = palette.textSecondary
                 )
             }
         }
