@@ -51,6 +51,19 @@ data class EqualizerUiState(
     val calibrationHeadphoneType: HeadphoneType = HeadphoneType.TWS,
     val calibrationBassLevel: Int = 0,
     val calibrationHighsLevel: Int = 0,
+    // Новые эффекты
+    val reverb: ReverbSettings = ReverbSettings(),
+    val compressor: CompressorSettings = CompressorSettings(),
+    val noiseGate: NoiseGateSettings = NoiseGateSettings(),
+    val deEsser: DeEsserSettings = DeEsserSettings(),
+    val subBass: SubBassSettings = SubBassSettings(),
+    // Пользовательские пресеты
+    val userPresets: List<UserPreset> = emptyList(),
+    val showSavePresetDialog: Boolean = false,
+    val newPresetName: String = "",
+    // Анализатор спектра
+    val spectrumEnabled: Boolean = false,
+    val spectrumData: FloatArray = FloatArray(32),
     // Состояние экспорта
     val exportState: ExportState = ExportState.Idle,
     val showExportDialog: Boolean = false,
@@ -168,7 +181,44 @@ class EqualizerViewModel @Inject constructor(
                 // Переключаемся в кастомный режим с текущими значениями
                 playbackEffectManager.setSpeed(_uiState.value.playbackSpeed)
             }
+            // Новые эффекты
+            PlaybackMode.CHILLCORE -> {
+                playbackEffectManager.setCustomParams(0.85f, 0.85f, false)
+                _uiState.value = _uiState.value.copy(
+                    stereoWidth = 120f,
+                    bassEnhancerAmount = 20f
+                )
+            }
+            PlaybackMode.SLOWED_REVERB -> {
+                playbackEffectManager.setCustomParams(0.75f, 0.75f, false)
+                _uiState.value = _uiState.value.copy(
+                    bassEnhancerAmount = 30f
+                )
+            }
+            PlaybackMode.HYPERCORE -> {
+                playbackEffectManager.setCustomParams(1.3f, 1.0f, true)
+            }
+            PlaybackMode.PHONK -> {
+                playbackEffectManager.setCustomParams(0.9f, 0.9f, false)
+                _uiState.value = _uiState.value.copy(
+                    bassEnhancerAmount = 60f,
+                    bassEnhancerMode = BassEnhancerMode.HARD,
+                    // Phonk EQ: boost bass, cut mids
+                    bands = listOf(6f, 5f, 3f, -2f, -3f, -2f, 1f, 2f, 1f, 0f)
+                )
+            }
+            PlaybackMode.HARDSTYLE -> {
+                playbackEffectManager.setCustomParams(1.0f, 1.0f, true)
+                _uiState.value = _uiState.value.copy(
+                    bassEnhancerAmount = 70f,
+                    bassEnhancerMode = BassEnhancerMode.HARD,
+                    bassEnhancerFrequency = 80,
+                    // Hardstyle EQ: kick focus
+                    bands = listOf(4f, 6f, 5f, 2f, 0f, 0f, 2f, 1f, 0f, 0f)
+                )
+            }
         }
+        _uiState.value = _uiState.value.copy(playbackMode = mode)
     }
 
     /**
@@ -228,6 +278,243 @@ class EqualizerViewModel @Inject constructor(
     fun cancelCalibration() { _uiState.value = _uiState.value.copy(isCalibrating = false, calibrationStep = 0) }
 
     fun resetToFlat() { selectPreset(builtInPresetsV2.first { it.id == "flat" }) }
+
+    // ==================== ADVANCED EFFECTS ====================
+    
+    /**
+     * Настройки реверберации
+     */
+    fun setReverb(settings: ReverbSettings) {
+        _uiState.value = _uiState.value.copy(reverb = settings)
+    }
+    
+    fun toggleReverb() {
+        val current = _uiState.value.reverb
+        _uiState.value = _uiState.value.copy(reverb = current.copy(enabled = !current.enabled))
+    }
+    
+    fun setReverbRoomSize(size: Float) {
+        val current = _uiState.value.reverb
+        _uiState.value = _uiState.value.copy(reverb = current.copy(roomSize = size.coerceIn(0f, 1f)))
+    }
+    
+    fun setReverbDecay(decay: Float) {
+        val current = _uiState.value.reverb
+        _uiState.value = _uiState.value.copy(reverb = current.copy(decay = decay.coerceIn(0f, 1f)))
+    }
+    
+    fun setReverbWetDry(mix: Float) {
+        val current = _uiState.value.reverb
+        _uiState.value = _uiState.value.copy(reverb = current.copy(wetDryMix = mix.coerceIn(0f, 1f)))
+    }
+    
+    /**
+     * Настройки компрессора
+     */
+    fun setCompressor(settings: CompressorSettings) {
+        _uiState.value = _uiState.value.copy(compressor = settings)
+    }
+    
+    fun toggleCompressor() {
+        val current = _uiState.value.compressor
+        _uiState.value = _uiState.value.copy(compressor = current.copy(enabled = !current.enabled))
+    }
+    
+    fun setCompressorThreshold(threshold: Float) {
+        val current = _uiState.value.compressor
+        _uiState.value = _uiState.value.copy(compressor = current.copy(threshold = threshold.coerceIn(-60f, 0f)))
+    }
+    
+    fun setCompressorRatio(ratio: Float) {
+        val current = _uiState.value.compressor
+        _uiState.value = _uiState.value.copy(compressor = current.copy(ratio = ratio.coerceIn(1f, 20f)))
+    }
+    
+    fun setCompressorAttack(attack: Float) {
+        val current = _uiState.value.compressor
+        _uiState.value = _uiState.value.copy(compressor = current.copy(attack = attack.coerceIn(0.1f, 100f)))
+    }
+    
+    fun setCompressorRelease(release: Float) {
+        val current = _uiState.value.compressor
+        _uiState.value = _uiState.value.copy(compressor = current.copy(release = release.coerceIn(10f, 1000f)))
+    }
+    
+    /**
+     * Настройки Noise Gate
+     */
+    fun setNoiseGate(settings: NoiseGateSettings) {
+        _uiState.value = _uiState.value.copy(noiseGate = settings)
+    }
+    
+    fun toggleNoiseGate() {
+        val current = _uiState.value.noiseGate
+        _uiState.value = _uiState.value.copy(noiseGate = current.copy(enabled = !current.enabled))
+    }
+    
+    fun setNoiseGateThreshold(threshold: Float) {
+        val current = _uiState.value.noiseGate
+        _uiState.value = _uiState.value.copy(noiseGate = current.copy(threshold = threshold.coerceIn(-80f, 0f)))
+    }
+    
+    fun setNoiseGateAttack(attack: Float) {
+        val current = _uiState.value.noiseGate
+        _uiState.value = _uiState.value.copy(noiseGate = current.copy(attack = attack.coerceIn(0.1f, 50f)))
+    }
+    
+    fun setNoiseGateRelease(release: Float) {
+        val current = _uiState.value.noiseGate
+        _uiState.value = _uiState.value.copy(noiseGate = current.copy(release = release.coerceIn(10f, 500f)))
+    }
+    
+    /**
+     * Настройки De-Esser
+     */
+    fun setDeEsser(settings: DeEsserSettings) {
+        _uiState.value = _uiState.value.copy(deEsser = settings)
+    }
+    
+    fun toggleDeEsser() {
+        val current = _uiState.value.deEsser
+        _uiState.value = _uiState.value.copy(deEsser = current.copy(enabled = !current.enabled))
+    }
+    
+    fun setDeEsserFrequency(freq: Float) {
+        val current = _uiState.value.deEsser
+        _uiState.value = _uiState.value.copy(deEsser = current.copy(frequency = freq.coerceIn(4000f, 10000f)))
+    }
+    
+    fun setDeEsserThreshold(threshold: Float) {
+        val current = _uiState.value.deEsser
+        _uiState.value = _uiState.value.copy(deEsser = current.copy(threshold = threshold.coerceIn(-40f, 0f)))
+    }
+    
+    fun setDeEsserReduction(reduction: Float) {
+        val current = _uiState.value.deEsser
+        _uiState.value = _uiState.value.copy(deEsser = current.copy(reduction = reduction.coerceIn(0f, 12f)))
+    }
+    
+    /**
+     * Настройки Sub-Bass
+     */
+    fun setSubBass(settings: SubBassSettings) {
+        _uiState.value = _uiState.value.copy(subBass = settings)
+    }
+    
+    fun toggleSubBass() {
+        val current = _uiState.value.subBass
+        _uiState.value = _uiState.value.copy(subBass = current.copy(enabled = !current.enabled))
+    }
+    
+    fun setSubBassAmount(amount: Float) {
+        val current = _uiState.value.subBass
+        _uiState.value = _uiState.value.copy(subBass = current.copy(amount = amount.coerceIn(0f, 100f)))
+    }
+    
+    fun setSubBassFrequency(freq: Int) {
+        val current = _uiState.value.subBass
+        _uiState.value = _uiState.value.copy(subBass = current.copy(frequency = freq.coerceIn(40, 120)))
+    }
+    
+    fun toggleSubHarmonics() {
+        val current = _uiState.value.subBass
+        _uiState.value = _uiState.value.copy(subBass = current.copy(subHarmonics = !current.subHarmonics))
+    }
+    
+    fun setSubHarmonicsAmount(amount: Float) {
+        val current = _uiState.value.subBass
+        _uiState.value = _uiState.value.copy(subBass = current.copy(subAmount = amount.coerceIn(0f, 100f)))
+    }
+    
+    // ==================== SPECTRUM ANALYZER ====================
+    
+    fun toggleSpectrum() {
+        _uiState.value = _uiState.value.copy(spectrumEnabled = !_uiState.value.spectrumEnabled)
+    }
+    
+    fun updateSpectrumData(data: FloatArray) {
+        _uiState.value = _uiState.value.copy(spectrumData = data)
+    }
+    
+    // ==================== USER PRESETS ====================
+    
+    fun showSavePresetDialog() {
+        _uiState.value = _uiState.value.copy(showSavePresetDialog = true, newPresetName = "")
+    }
+    
+    fun hideSavePresetDialog() {
+        _uiState.value = _uiState.value.copy(showSavePresetDialog = false)
+    }
+    
+    fun setNewPresetName(name: String) {
+        _uiState.value = _uiState.value.copy(newPresetName = name)
+    }
+    
+    fun saveUserPreset(name: String, trackId: String? = null, playlistId: String? = null) {
+        val state = _uiState.value
+        val preset = EqualizerPresetV2(
+            id = "user_${System.currentTimeMillis()}",
+            name = name,
+            bands = state.bands,
+            bassEnhancer = state.bassEnhancerAmount,
+            bassEnhancerFrequency = state.bassEnhancerFrequency,
+            bassEnhancerMode = state.bassEnhancerMode,
+            stereoWidth = state.stereoWidth,
+            loudnessEnabled = state.loudnessEnabled,
+            reverb = state.reverb,
+            compressor = state.compressor,
+            noiseGate = state.noiseGate,
+            deEsser = state.deEsser,
+            subBass = state.subBass
+        )
+        
+        val userPreset = UserPreset(
+            id = preset.id,
+            name = name,
+            preset = preset,
+            linkedTrackId = trackId,
+            linkedPlaylistId = playlistId
+        )
+        
+        val updatedPresets = _uiState.value.userPresets + userPreset
+        _uiState.value = _uiState.value.copy(
+            userPresets = updatedPresets,
+            showSavePresetDialog = false
+        )
+        
+        // Сохраняем в preferences
+        viewModelScope.launch {
+            saveUserPresetsToStorage(updatedPresets)
+        }
+    }
+    
+    fun loadUserPreset(preset: UserPreset) {
+        selectPreset(preset.preset)
+        _uiState.value = _uiState.value.copy(
+            reverb = preset.preset.reverb,
+            compressor = preset.preset.compressor,
+            noiseGate = preset.preset.noiseGate,
+            deEsser = preset.preset.deEsser,
+            subBass = preset.preset.subBass
+        )
+    }
+    
+    fun deleteUserPreset(presetId: String) {
+        val updatedPresets = _uiState.value.userPresets.filter { it.id != presetId }
+        _uiState.value = _uiState.value.copy(userPresets = updatedPresets)
+        
+        viewModelScope.launch {
+            saveUserPresetsToStorage(updatedPresets)
+        }
+    }
+    
+    private suspend fun saveUserPresetsToStorage(presets: List<UserPreset>) {
+        // Сериализуем пресеты в JSON и сохраняем
+        val json = presets.joinToString(";") { p ->
+            "${p.id}|${p.name}|${p.preset.bands.joinToString(",")}"
+        }
+        preferencesManager.setUserPresets(json)
+    }
 
     fun saveSettings() {
         viewModelScope.launch {

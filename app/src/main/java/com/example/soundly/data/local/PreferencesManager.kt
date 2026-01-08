@@ -37,6 +37,7 @@ class PreferencesManager @Inject constructor(
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_AVATAR = stringPreferencesKey("user_avatar")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val USER_PRESETS = stringPreferencesKey("user_presets")
     }
 
     val isDarkTheme: Flow<Boolean> = dataStore.data.map { it[DARK_THEME] ?: true }
@@ -57,6 +58,7 @@ class PreferencesManager @Inject constructor(
     val userEmail: Flow<String?> = dataStore.data.map { it[USER_EMAIL] }
     val userName: Flow<String?> = dataStore.data.map { it[USER_NAME] }
     val userAvatar: Flow<String?> = dataStore.data.map { it[USER_AVATAR] }
+    val userPresets: Flow<String> = dataStore.data.map { it[USER_PRESETS] ?: "" }
 
     suspend fun setDarkTheme(enabled: Boolean) {
         dataStore.edit { it[DARK_THEME] = enabled }
@@ -140,5 +142,9 @@ class PreferencesManager @Inject constructor(
             it.remove(USER_AVATAR)
             it[IS_LOGGED_IN] = false
         }
+    }
+    
+    suspend fun setUserPresets(presets: String) {
+        dataStore.edit { it[USER_PRESETS] = presets }
     }
 }

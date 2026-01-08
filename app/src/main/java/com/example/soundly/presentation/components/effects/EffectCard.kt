@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +27,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.soundly.player.audio.dsp.AudioEffect
 import com.example.soundly.presentation.theme.LocalColorPalette
+
+/**
+ * Получить Material иконку по типу эффекта
+ */
+private fun getEffectIcon(iconType: String): ImageVector {
+    return when (iconType) {
+        "headphones" -> Icons.Default.Headphones
+        "water_drop" -> Icons.Default.WaterDrop
+        "bolt" -> Icons.Default.Bolt
+        "nightlife" -> Icons.Default.Nightlife
+        "rocket_launch" -> Icons.Default.RocketLaunch
+        "tune" -> Icons.Default.Tune
+        "music_note" -> Icons.Default.MusicNote
+        else -> Icons.Default.MusicNote
+    }
+}
 
 /**
  * Карточка эффекта с анимацией и glow
@@ -50,25 +68,31 @@ fun EffectCard(
     
     val glowAlpha by animateFloatAsState(
         targetValue = if (isSelected) 0.4f else 0f,
-        animationSpec = tween(300),
+        animationSpec = tween(250),
         label = "glow"
     )
     
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) effectColor else palette.textSecondary.copy(alpha = 0.2f),
-        animationSpec = tween(300),
+        targetValue = if (isSelected) effectColor else Color.Transparent,
+        animationSpec = tween(250),
         label = "border"
     )
     
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) effectColor.copy(alpha = 0.15f) else palette.cardDark,
-        animationSpec = tween(300),
+        animationSpec = tween(250),
         label = "background"
+    )
+    
+    val iconTint by animateColorAsState(
+        targetValue = if (isSelected) effectColor else palette.textSecondary,
+        animationSpec = tween(250),
+        label = "iconTint"
     )
 
     Box(
         modifier = modifier
-            .width(100.dp)
+            .width(90.dp)
             .scale(scale)
     ) {
         // Glow эффект
@@ -76,10 +100,10 @@ fun EffectCard(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .blur(16.dp)
+                    .blur(12.dp)
                     .background(
                         effectColor.copy(alpha = glowAlpha),
-                        RoundedCornerShape(16.dp)
+                        RoundedCornerShape(14.dp)
                     )
             )
         }
@@ -88,27 +112,31 @@ fun EffectCard(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .border(
-                    width = if (isSelected) 2.dp else 1.dp,
-                    color = borderColor,
-                    shape = RoundedCornerShape(16.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .then(
+                    if (isSelected) Modifier.border(
+                        width = 2.dp,
+                        color = borderColor,
+                        shape = RoundedCornerShape(14.dp)
+                    ) else Modifier
                 )
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onClick()
                 },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp),
             color = backgroundColor
         ) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Иконка эффекта
-                Text(
-                    text = effect.icon,
-                    fontSize = 28.sp
+                // Material иконка
+                Icon(
+                    imageVector = getEffectIcon(effect.icon),
+                    contentDescription = effect.name,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -121,7 +149,8 @@ fun EffectCard(
                     color = if (isSelected) effectColor else palette.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontSize = 11.sp
                 )
                 
                 // Описание скорости
@@ -130,8 +159,8 @@ fun EffectCard(
                     Text(
                         text = "${effect.speedRange.start}x-${effect.speedRange.endInclusive}x",
                         style = MaterialTheme.typography.labelSmall,
-                        color = palette.textSecondary,
-                        fontSize = 9.sp
+                        color = palette.textSecondary.copy(alpha = 0.7f),
+                        fontSize = 8.sp
                     )
                 }
             }
@@ -153,7 +182,7 @@ fun EffectsRow(
     
     Column(modifier = modifier) {
         Text(
-            text = "⚡ Эффекты",
+            text = "Эффекты",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = palette.textPrimary,

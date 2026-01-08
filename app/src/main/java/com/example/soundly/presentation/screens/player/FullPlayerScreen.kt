@@ -438,7 +438,7 @@ fun FullPlayerScreen(
                     )
                 }
 
-                // Эквалайзер
+                // Эквалайзер и эффекты
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Surface(
                         onClick = { navController.navigate(Screen.Equalizer.route) },
@@ -457,7 +457,7 @@ fun FullPlayerScreen(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Эквалайзер",
+                        text = "Эффекты",
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.textSecondary
                     )

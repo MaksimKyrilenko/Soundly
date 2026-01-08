@@ -23,7 +23,13 @@ enum class PlaybackMode {
     DAYCORE,     // 0.75x speed, 0.75x pitch
     SPEED_ONLY,  // Только скорость без изменения питча (time-stretch)
     DOUBLE_TIME, // 1.5x speed, pitch сохранён (как DT в osu!)
-    HALF_TIME    // 0.75x speed, pitch сохранён (как HT в osu!)
+    HALF_TIME,   // 0.75x speed, pitch сохранён (как HT в osu!)
+    // Новые эффекты
+    CHILLCORE,   // 0.85x, тёплый звук, tape-сатурация
+    SLOWED_REVERB, // 0.75x с реверберацией
+    HYPERCORE,   // 1.3x с сохранением pitch, усиление транзиентов
+    PHONK,       // 0.9x, глубокий бас, scooped mids
+    HARDSTYLE    // 1.0x, акцент на кик, агрессивный бас
 }
 
 enum class RepeatMode {

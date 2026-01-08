@@ -1,14 +1,18 @@
 package com.example.soundly.presentation.screens.equalizer
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,11 +22,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -43,6 +53,16 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
     if (uiState.isCalibrating) {
         CalibrationDialog(uiState.calibrationStep, viewModel::setCalibrationHeadphoneType, viewModel::setCalibrationBassLevel, 
             viewModel::setCalibrationHighsLevel, viewModel::setCalibrationVolumeLevel, viewModel::cancelCalibration)
+    }
+    
+    // Диалог сохранения пресета
+    if (uiState.showSavePresetDialog) {
+        SavePresetDialog(
+            presetName = uiState.newPresetName,
+            onNameChange = viewModel::setNewPresetName,
+            onConfirm = { viewModel.saveUserPreset(uiState.newPresetName) },
+            onDismiss = viewModel::hideSavePresetDialog
+        )
     }
     
     // Диалог экспорта
@@ -131,6 +151,74 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
                 Spacer(Modifier.height(16.dp))
                 EffectsCard(uiState.stereoWidth, uiState.isMono, uiState.loudnessEnabled, uiState.balanceL, uiState.isEnabled,
                     viewModel::setStereoWidth, viewModel::toggleMono, viewModel::toggleLoudness, viewModel::setBalance)
+                
+                // Новые расширенные эффекты
+                Spacer(Modifier.height(16.dp))
+                ReverbCard(
+                    settings = uiState.reverb,
+                    enabled = uiState.isEnabled,
+                    onToggle = viewModel::toggleReverb,
+                    onRoomSizeChange = viewModel::setReverbRoomSize,
+                    onDecayChange = viewModel::setReverbDecay,
+                    onWetDryChange = viewModel::setReverbWetDry
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                CompressorCard(
+                    settings = uiState.compressor,
+                    enabled = uiState.isEnabled,
+                    onToggle = viewModel::toggleCompressor,
+                    onThresholdChange = viewModel::setCompressorThreshold,
+                    onRatioChange = viewModel::setCompressorRatio,
+                    onAttackChange = viewModel::setCompressorAttack,
+                    onReleaseChange = viewModel::setCompressorRelease
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                NoiseGateCard(
+                    settings = uiState.noiseGate,
+                    enabled = uiState.isEnabled,
+                    onToggle = viewModel::toggleNoiseGate,
+                    onThresholdChange = viewModel::setNoiseGateThreshold,
+                    onAttackChange = viewModel::setNoiseGateAttack,
+                    onReleaseChange = viewModel::setNoiseGateRelease
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                DeEsserCard(
+                    settings = uiState.deEsser,
+                    enabled = uiState.isEnabled,
+                    onToggle = viewModel::toggleDeEsser,
+                    onFrequencyChange = viewModel::setDeEsserFrequency,
+                    onThresholdChange = viewModel::setDeEsserThreshold,
+                    onReductionChange = viewModel::setDeEsserReduction
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                SubBassCard(
+                    settings = uiState.subBass,
+                    enabled = uiState.isEnabled,
+                    onToggle = viewModel::toggleSubBass,
+                    onAmountChange = viewModel::setSubBassAmount,
+                    onFrequencyChange = viewModel::setSubBassFrequency,
+                    onSubHarmonicsToggle = viewModel::toggleSubHarmonics,
+                    onSubAmountChange = viewModel::setSubHarmonicsAmount
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                SpectrumAnalyzerCard(
+                    enabled = uiState.spectrumEnabled,
+                    data = uiState.spectrumData,
+                    onToggle = viewModel::toggleSpectrum
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                UserPresetsCard(
+                    userPresets = uiState.userPresets,
+                    onLoadPreset = viewModel::loadUserPreset,
+                    onDeletePreset = viewModel::deleteUserPreset,
+                    onSavePreset = viewModel::showSavePresetDialog
+                )
             }
             
             Spacer(Modifier.height(24.dp))
@@ -197,11 +285,17 @@ fun SpeedCard(
             
             Spacer(Modifier.height(16.dp))
             
-            // Быстрые пресеты (osu! style)
-            Text("⚡ Быстрые пресеты", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
+            // Быстрые пресеты
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Быстрые пресеты", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
+            }
             Spacer(Modifier.height(8.dp))
             
-            // Первый ряд - с изменением тона
+            // Первый ряд - базовые
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     playbackMode == PlaybackMode.DAYCORE,
@@ -247,12 +341,67 @@ fun SpeedCard(
                 )
             }
             
+            Spacer(Modifier.height(16.dp))
+            
+            // Эффекты - сетка карточек
+            Text("Эффекты", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
+            Spacer(Modifier.height(12.dp))
+            
+            // Данные эффектов с иконками Material
+            val effects = listOf(
+                EffectData(PlaybackMode.CHILLCORE, "chill", "Chill", "0.85x", 0xFF8B5CF6),
+                EffectData(PlaybackMode.SLOWED_REVERB, "slowed", "Slowed", "0.75x", 0xFF06B6D4),
+                EffectData(PlaybackMode.PHONK, "phonk", "Phonk", "0.9x", 0xFFEF4444),
+                EffectData(PlaybackMode.HYPERCORE, "hyper", "Hyper", "1.3x", 0xFFF59E0B),
+                EffectData(PlaybackMode.HARDSTYLE, "hard", "Hard", "1.0x", 0xFFEC4899)
+            )
+            
+            // Первый ряд - 3 карточки
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                effects.take(3).forEach { effect ->
+                    AnimatedEffectCard(
+                        effect = effect,
+                        isSelected = playbackMode == effect.mode,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onModeChange(effect.mode)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            // Второй ряд - 2 карточки + пустое место
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                effects.drop(3).forEach { effect ->
+                    AnimatedEffectCard(
+                        effect = effect,
+                        isSelected = playbackMode == effect.mode,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onModeChange(effect.mode)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Пустое место для выравнивания
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            
             Spacer(Modifier.height(20.dp))
             HorizontalDivider(color = palette.textSecondary.copy(alpha = 0.3f))
             Spacer(Modifier.height(16.dp))
             
             // Ползунок скорости
-            Text("🎚️ Скорость воспроизведения", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
+            Text("Скорость воспроизведения", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
             Spacer(Modifier.height(4.dp))
             
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -286,7 +435,7 @@ fun SpeedCard(
             Spacer(Modifier.height(16.dp))
             
             // Ползунок питча
-            Text("🎵 Высота тона (Pitch)", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
+            Text("Высота тона (Pitch)", style = MaterialTheme.typography.labelMedium, color = palette.textSecondary)
             Spacer(Modifier.height(4.dp))
             
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -330,7 +479,7 @@ fun SpeedCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("🔗 Связать pitch со скоростью", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
+                    Text("Связать pitch со скоростью", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
                     Text(
                         if (preservePitch) "Pitch сохраняется (time-stretch)" else "Pitch меняется вместе со скоростью",
                         style = MaterialTheme.typography.labelSmall,
@@ -349,7 +498,7 @@ fun SpeedCard(
                 HorizontalDivider(color = palette.textSecondary.copy(alpha = 0.3f))
                 Spacer(Modifier.height(12.dp))
                 
-                Text("🎛️ PRO настройки", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text("PRO настройки", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
                 
                 // Семитоны для pitch
@@ -614,7 +763,7 @@ fun ExportCard(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "💾 Экспорт с эффектами",
+                        "Экспорт с эффектами",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = palette.textPrimary
@@ -829,6 +978,761 @@ fun ExportErrorDialog(
         confirmButton = {
             Button(onClick = onDismiss) {
                 Text("Понятно")
+            }
+        }
+    )
+}
+
+
+// ==================== EFFECT CARDS ====================
+
+/**
+ * Данные для карточки эффекта
+ */
+data class EffectData(
+    val mode: PlaybackMode,
+    val iconType: String, // "chill", "slowed", "phonk", "hyper", "hard"
+    val name: String,
+    val description: String,
+    val color: Long
+)
+
+/**
+ * Анимированная карточка эффекта с glow и Material иконками
+ */
+@Composable
+fun AnimatedEffectCard(
+    effect: EffectData,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = LocalColorPalette.current
+    val effectColor = Color(effect.color)
+    
+    // Пружинная анимация масштаба
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.02f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.6f,
+            stiffness = 400f
+        ),
+        label = "scale"
+    )
+    
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) effectColor else Color.Transparent,
+        animationSpec = tween(200),
+        label = "borderColor"
+    )
+    
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) effectColor.copy(alpha = 0.15f) else Color.Transparent,
+        animationSpec = tween(200),
+        label = "background"
+    )
+    
+    val iconTint by animateColorAsState(
+        targetValue = if (isSelected) effectColor else palette.textSecondary,
+        animationSpec = tween(200),
+        label = "iconTint"
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Material иконка
+            Icon(
+                imageVector = when (effect.iconType) {
+                    "chill" -> Icons.Default.Headphones
+                    "slowed" -> Icons.Default.WaterDrop
+                    "phonk" -> Icons.Default.Nightlife
+                    "hyper" -> Icons.Default.Bolt
+                    "hard" -> Icons.Default.RocketLaunch
+                    else -> Icons.Default.MusicNote
+                },
+                contentDescription = effect.name,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            // Название
+            Text(
+                text = effect.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) effectColor else palette.textPrimary,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                fontSize = 12.sp
+            )
+            
+            // Описание
+            Text(
+                text = effect.description,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.textSecondary,
+                fontSize = 10.sp,
+                maxLines = 1,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+
+// ==================== ADVANCED EFFECTS CARDS ====================
+
+@Composable
+fun ReverbCard(
+    settings: ReverbSettings,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onRoomSizeChange: (Float) -> Unit,
+    onDecayChange: (Float) -> Unit,
+    onWetDryChange: (Float) -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Waves, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Реверберация", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                    }
+                    Switch(checked = settings.enabled, onCheckedChange = { onToggle() }, enabled = enabled)
+                }
+                
+                AnimatedVisibility(visible = settings.enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Room Size
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Размер комнаты", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(120.dp))
+                            Slider(
+                                value = settings.roomSize,
+                                onValueChange = onRoomSizeChange,
+                                valueRange = 0f..1f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${(settings.roomSize * 100).toInt()}%", modifier = Modifier.width(45.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Decay
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Затухание", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(120.dp))
+                            Slider(
+                                value = settings.decay,
+                                onValueChange = onDecayChange,
+                                valueRange = 0f..1f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${(settings.decay * 100).toInt()}%", modifier = Modifier.width(45.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Wet/Dry Mix
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Wet/Dry", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(120.dp))
+                            Slider(
+                                value = settings.wetDryMix,
+                                onValueChange = onWetDryChange,
+                                valueRange = 0f..1f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${(settings.wetDryMix * 100).toInt()}%", modifier = Modifier.width(45.dp), color = palette.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CompressorCard(
+    settings: CompressorSettings,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onThresholdChange: (Float) -> Unit,
+    onRatioChange: (Float) -> Unit,
+    onAttackChange: (Float) -> Unit,
+    onReleaseChange: (Float) -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Compress, null, tint = MaterialTheme.colorScheme.secondary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Компрессор", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                    }
+                    Switch(checked = settings.enabled, onCheckedChange = { onToggle() }, enabled = enabled)
+                }
+                
+                AnimatedVisibility(visible = settings.enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Threshold
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Порог", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.threshold,
+                                onValueChange = onThresholdChange,
+                                valueRange = -60f..0f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.threshold.toInt()} dB", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Ratio
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Ratio", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.ratio,
+                                onValueChange = onRatioChange,
+                                valueRange = 1f..20f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${String.format("%.1f", settings.ratio)}:1", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Attack
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Attack", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.attack,
+                                onValueChange = onAttackChange,
+                                valueRange = 0.1f..100f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.attack.toInt()} ms", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Release
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Release", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.release,
+                                onValueChange = onReleaseChange,
+                                valueRange = 10f..1000f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.release.toInt()} ms", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NoiseGateCard(
+    settings: NoiseGateSettings,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onThresholdChange: (Float) -> Unit,
+    onAttackChange: (Float) -> Unit,
+    onReleaseChange: (Float) -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.VolumeOff, null, tint = MaterialTheme.colorScheme.tertiary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Noise Gate", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                    }
+                    Switch(checked = settings.enabled, onCheckedChange = { onToggle() }, enabled = enabled)
+                }
+                
+                AnimatedVisibility(visible = settings.enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Threshold
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Порог", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.threshold,
+                                onValueChange = onThresholdChange,
+                                valueRange = -80f..0f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.threshold.toInt()} dB", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Attack
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Attack", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.attack,
+                                onValueChange = onAttackChange,
+                                valueRange = 0.1f..50f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${String.format("%.1f", settings.attack)} ms", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Release
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Release", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.release,
+                                onValueChange = onReleaseChange,
+                                valueRange = 10f..500f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.release.toInt()} ms", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeEsserCard(
+    settings: DeEsserSettings,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onFrequencyChange: (Float) -> Unit,
+    onThresholdChange: (Float) -> Unit,
+    onReductionChange: (Float) -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.RecordVoiceOver, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("De-Esser", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                            Text("Убирает резкие С и Ш", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                        }
+                    }
+                    Switch(checked = settings.enabled, onCheckedChange = { onToggle() }, enabled = enabled)
+                }
+                
+                AnimatedVisibility(visible = settings.enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Frequency
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Частота", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.frequency,
+                                onValueChange = onFrequencyChange,
+                                valueRange = 4000f..10000f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${(settings.frequency / 1000).toInt()}k Hz", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Threshold
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Порог", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.threshold,
+                                onValueChange = onThresholdChange,
+                                valueRange = -40f..0f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.threshold.toInt()} dB", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Reduction
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Снижение", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(80.dp))
+                            Slider(
+                                value = settings.reduction,
+                                onValueChange = onReductionChange,
+                                valueRange = 0f..12f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${String.format("%.1f", settings.reduction)} dB", modifier = Modifier.width(55.dp), color = palette.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SubBassCard(
+    settings: SubBassSettings,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    onAmountChange: (Float) -> Unit,
+    onFrequencyChange: (Int) -> Unit,
+    onSubHarmonicsToggle: () -> Unit,
+    onSubAmountChange: (Float) -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Speaker, null, tint = MaterialTheme.colorScheme.secondary)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Sub-Bass Generator", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                            Text("Генерация октавы ниже", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                        }
+                    }
+                    Switch(checked = settings.enabled, onCheckedChange = { onToggle() }, enabled = enabled)
+                }
+                
+                AnimatedVisibility(visible = settings.enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Amount
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Уровень", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(100.dp))
+                            Slider(
+                                value = settings.amount,
+                                onValueChange = onAmountChange,
+                                valueRange = 0f..100f,
+                                enabled = enabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text("${settings.amount.toInt()}%", modifier = Modifier.width(45.dp), color = palette.textSecondary)
+                        }
+                        
+                        // Frequency
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Частота среза", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(40, 60, 80, 100, 120).forEach { f ->
+                                    FilterChip(
+                                        selected = settings.frequency == f,
+                                        onClick = { onFrequencyChange(f) },
+                                        label = { Text("${f}Hz", fontSize = 10.sp) },
+                                        enabled = enabled
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(12.dp))
+                        
+                        // Sub-harmonics toggle
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Сабгармоники", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
+                            Switch(checked = settings.subHarmonics, onCheckedChange = { onSubHarmonicsToggle() }, enabled = enabled)
+                        }
+                        
+                        // Sub-harmonics amount
+                        AnimatedVisibility(visible = settings.subHarmonics) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Уровень саб", style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary, modifier = Modifier.width(100.dp))
+                                Slider(
+                                    value = settings.subAmount,
+                                    onValueChange = onSubAmountChange,
+                                    valueRange = 0f..100f,
+                                    enabled = enabled,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text("${settings.subAmount.toInt()}%", modifier = Modifier.width(45.dp), color = palette.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SpectrumAnalyzerCard(
+    enabled: Boolean,
+    data: FloatArray,
+    onToggle: () -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Equalizer, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Анализатор спектра", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                    }
+                    Switch(checked = enabled, onCheckedChange = { onToggle() })
+                }
+                
+                AnimatedVisibility(visible = enabled) {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // Spectrum bars visualization
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(palette.cardDark.copy(alpha = 0.5f))
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            data.forEachIndexed { index, value ->
+                                val animatedHeight by animateFloatAsState(
+                                    targetValue = value.coerceIn(0f, 1f),
+                                    animationSpec = tween(50),
+                                    label = "bar_$index"
+                                )
+                                
+                                val barColor = when {
+                                    index < 8 -> MaterialTheme.colorScheme.primary
+                                    index < 16 -> MaterialTheme.colorScheme.secondary
+                                    index < 24 -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.error
+                                }
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .width(6.dp)
+                                        .fillMaxHeight(animatedHeight.coerceAtLeast(0.05f))
+                                        .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                                        .background(barColor.copy(alpha = 0.8f))
+                                )
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Frequency labels
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("20Hz", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                            Text("200Hz", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                            Text("2kHz", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                            Text("20kHz", style = MaterialTheme.typography.labelSmall, color = palette.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserPresetsCard(
+    userPresets: List<UserPreset>,
+    onLoadPreset: (UserPreset) -> Unit,
+    onDeletePreset: (String) -> Unit,
+    onSavePreset: () -> Unit
+) {
+    val palette = LocalColorPalette.current
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(listOf(palette.cardLight, palette.cardDark)),
+                    shape = RoundedCornerShape(16.dp)
+                )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Save, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Мои пресеты", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+                    }
+                    IconButton(onClick = onSavePreset) {
+                        Icon(Icons.Default.Add, "Сохранить пресет", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                
+                Spacer(Modifier.height(12.dp))
+                
+                if (userPresets.isEmpty()) {
+                    Text(
+                        "Нет сохранённых пресетов",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textSecondary,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    userPresets.forEach { preset ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onLoadPreset(preset) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(preset.name, style = MaterialTheme.typography.bodyMedium, color = palette.textPrimary)
+                                Text(
+                                    java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(java.util.Date(preset.createdAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = palette.textSecondary
+                                )
+                            }
+                            IconButton(onClick = { onDeletePreset(preset.id) }) {
+                                Icon(Icons.Default.Delete, "Удалить", tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                        HorizontalDivider(color = palette.textSecondary.copy(alpha = 0.2f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SavePresetDialog(
+    presetName: String,
+    onNameChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val palette = LocalColorPalette.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.cardMid,
+        title = { Text("Сохранить пресет", color = palette.textPrimary) },
+        text = {
+            Column {
+                Text(
+                    "Текущие настройки эквалайзера будут сохранены",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textSecondary
+                )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = presetName,
+                    onValueChange = onNameChange,
+                    label = { Text("Название пресета") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = presetName.isNotBlank()
+            ) {
+                Text("Сохранить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
             }
         }
     )

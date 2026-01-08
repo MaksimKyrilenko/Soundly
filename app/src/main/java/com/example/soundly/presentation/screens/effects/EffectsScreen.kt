@@ -224,7 +224,7 @@ private fun VisualizerCard(
 @Composable
 private fun EffectSelectionCard(
     effects: List<AudioEffect>,
-    selectedEffect: AudioEffect,
+    selectedEffect: AudioEffect?,
     onEffectSelected: (AudioEffect) -> Unit
 ) {
     val palette = LocalColorPalette.current
@@ -248,7 +248,7 @@ private fun EffectSelectionCard(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "⚡ Выберите эффект",
+                    text = "Выберите эффект",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = palette.textPrimary
@@ -266,7 +266,7 @@ private fun EffectSelectionCard(
                     effects.forEach { effect ->
                         EffectCard(
                             effect = effect,
-                            isSelected = effect.id == selectedEffect.id,
+                            isSelected = effect.id == selectedEffect?.id,
                             onClick = { onEffectSelected(effect) }
                         )
                     }
@@ -342,7 +342,7 @@ private fun SpeedPitchCard(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "🎚️ Скорость и тон",
+                    text = "Скорость и тон",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = palette.textPrimary
@@ -402,7 +402,7 @@ private fun SpeedPitchCard(
                 if (effect.pitchLinked) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "🔗 Pitch связан со скоростью для этого эффекта",
+                        text = "Pitch связан со скоростью для этого эффекта",
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.textSecondary
                     )
