@@ -10,6 +10,8 @@ import com.example.soundly.data.repository.PlaylistRepositoryImpl
 import com.example.soundly.data.repository.TrackRepositoryImpl
 import com.example.soundly.domain.repository.PlaylistRepository
 import com.example.soundly.domain.repository.TrackRepository
+import com.example.soundly.player.audio.PlaybackEffectManager
+import com.example.soundly.player.audio.dsp.EffectsManager
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -44,6 +46,15 @@ object DatabaseModule {
     @Singleton
     fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager {
         return PreferencesManager(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideEffectsManager(
+        preferencesManager: PreferencesManager,
+        playbackEffectManager: PlaybackEffectManager
+    ): EffectsManager {
+        return EffectsManager(preferencesManager, playbackEffectManager)
     }
 }
 

@@ -18,6 +18,7 @@ import com.example.soundly.presentation.screens.profile.ProfileScreen
 import com.example.soundly.presentation.screens.auth.LoginScreen
 import com.example.soundly.presentation.screens.auth.RegisterScreen
 import com.example.soundly.presentation.screens.equalizer.EqualizerScreen
+import com.example.soundly.presentation.screens.effects.EffectsScreen
 import com.example.soundly.presentation.screens.favorites.FavoritesScreen
 import com.example.soundly.presentation.screens.statistics.StatisticsScreen
 
@@ -31,6 +32,7 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
     data object Equalizer : Screen("equalizer")
+    data object Effects : Screen("effects")
     data object Favorites : Screen("favorites")
     data object Statistics : Screen("statistics")
     data object PlaylistDetail : Screen("playlist/{playlistId}") {
@@ -177,6 +179,16 @@ fun SoundlyNavGraph(
             popExitTransition = { playerExit }
         ) {
             EqualizerScreen(navController = navController)
+        }
+        
+        composable(
+            route = Screen.Effects.route,
+            enterTransition = { playerEnter },
+            exitTransition = { playerExit },
+            popEnterTransition = { playerEnter },
+            popExitTransition = { playerExit }
+        ) {
+            EffectsScreen(navController = navController)
         }
         
         composable(Screen.Favorites.route) {
