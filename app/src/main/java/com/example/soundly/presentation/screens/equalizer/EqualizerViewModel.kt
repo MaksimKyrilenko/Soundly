@@ -7,6 +7,7 @@ import com.example.soundly.data.local.PreferencesManager
 import com.example.soundly.domain.model.*
 import com.example.soundly.domain.repository.TrackRepository
 import com.example.soundly.player.PlayerController
+import com.example.soundly.player.audio.AudioEffectsManager
 import com.example.soundly.player.audio.PlaybackEffect
 import com.example.soundly.player.audio.PlaybackEffectManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,6 +76,7 @@ class EqualizerViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val playerController: PlayerController,
     private val playbackEffectManager: PlaybackEffectManager,
+    private val audioEffectsManager: AudioEffectsManager,
     private val audioExportService: AudioExportService,
     private val trackRepository: TrackRepository
 ) : ViewModel() {
@@ -84,6 +86,25 @@ class EqualizerViewModel @Inject constructor(
 
     init {
         loadSettings()
+        
+        // Подписываемся на изменения эквалайзера из AudioEffectsManager
+        viewModelScope.launch {
+            audioEffectsManager.bands.collect { bands ->
+                _uiState.value = _uiState.value.copy(bands = bands)
+            }
+        }
+        
+        viewModelScope.launch {
+            audioEffectsManager.bassBoostStrength.collect { strength ->
+                _uiState.value = _uiState.value.copy(bassEnhancerAmount = strength / 10f)
+            }
+        }
+        
+        viewModelScope.launch {
+            audioEffectsManager.virtualizerStrength.collect { strength ->
+                _uiState.value = _uiState.value.copy(stereoWidth = 100f + strength / 20f)
+            }
+        }
         
         // Подписываемся на изменения параметров воспроизведения из PlaybackEffectManager
         viewModelScope.launch {
@@ -145,24 +166,52 @@ class EqualizerViewModel @Inject constructor(
             bassEnhancerFrequency = preset.bassEnhancerFrequency, bassEnhancerMode = preset.bassEnhancerMode,
             stereoWidth = preset.stereoWidth, loudnessEnabled = preset.loudnessEnabled
         )
+        // Применяем к реальным эффектам
+        audioEffectsManager.setAllBands(preset.bands)
+        audioEffectsManager.setBassBoost((preset.bassEnhancer * 10).toInt())
+        val virtualizerStrength = ((preset.stereoWidth - 100f) * 20).toInt().coerceIn(0, 1000)
+        audioEffectsManager.setVirtualizer(virtualizerStrength)
     }
 
     fun setBandValue(index: Int, value: Float) {
         val newBands = _uiState.value.bands.toMutableList()
         newBands[index] = value.coerceIn(-12f, 12f)
         _uiState.value = _uiState.value.copy(bands = newBands, currentPresetId = "custom")
+        // Применяем к реальному эквалайзеру
+        audioEffectsManager.setBand(index, value)
     }
     fun resetBand(index: Int) { setBandValue(index, 0f) }
-    fun setPreamp(value: Float) { _uiState.value = _uiState.value.copy(preamp = value.coerceIn(-6f, 6f)) }
+    fun setPreamp(value: Float) { 
+        _uiState.value = _uiState.value.copy(preamp = value.coerceIn(-6f, 6f))
+        // Применяем к реальному эффекту
+        audioEffectsManager.setPreamp(value)
+    }
     fun toggleAutoGain() { _uiState.value = _uiState.value.copy(autoGainEnabled = !_uiState.value.autoGainEnabled) }
 
-    fun setBassEnhancerAmount(amount: Float) { _uiState.value = _uiState.value.copy(bassEnhancerAmount = amount.coerceIn(0f, 100f)) }
+    fun setBassEnhancerAmount(amount: Float) { 
+        _uiState.value = _uiState.value.copy(bassEnhancerAmount = amount.coerceIn(0f, 100f))
+        // Применяем к реальному Bass Boost (0-100 -> 0-1000)
+        audioEffectsManager.setBassBoost((amount * 10).toInt())
+    }
     fun setBassEnhancerFrequency(freq: Int) { _uiState.value = _uiState.value.copy(bassEnhancerFrequency = freq) }
     fun setBassEnhancerMode(mode: BassEnhancerMode) { _uiState.value = _uiState.value.copy(bassEnhancerMode = mode) }
 
-    fun setStereoWidth(width: Float) { _uiState.value = _uiState.value.copy(stereoWidth = width.coerceIn(0f, 150f)) }
+    fun setStereoWidth(width: Float) { 
+        _uiState.value = _uiState.value.copy(stereoWidth = width.coerceIn(0f, 150f))
+        // Применяем к реальному Virtualizer (100-150 -> 0-1000)
+        val virtualizerStrength = ((width - 100f) * 20).toInt().coerceIn(0, 1000)
+        audioEffectsManager.setVirtualizer(virtualizerStrength)
+    }
     fun toggleMono() { _uiState.value = _uiState.value.copy(isMono = !_uiState.value.isMono) }
-    fun toggleLoudness() { _uiState.value = _uiState.value.copy(loudnessEnabled = !_uiState.value.loudnessEnabled) }
+    fun toggleLoudness() { 
+        val newEnabled = !_uiState.value.loudnessEnabled
+        _uiState.value = _uiState.value.copy(loudnessEnabled = newEnabled)
+        // Применяем к реальному эффекту
+        audioEffectsManager.setLoudnessEnabled(newEnabled)
+        if (newEnabled) {
+            audioEffectsManager.setLoudnessGain(500) // Средний уровень
+        }
+    }
     fun setBalance(value: Float) { _uiState.value = _uiState.value.copy(balanceL = value.coerceIn(-100f, 100f)) }
 
     fun setPlaybackSpeed(speed: Float) { playbackEffectManager.setSpeed(speed) }
@@ -278,6 +327,59 @@ class EqualizerViewModel @Inject constructor(
     fun cancelCalibration() { _uiState.value = _uiState.value.copy(isCalibrating = false, calibrationStep = 0) }
 
     fun resetToFlat() { selectPreset(builtInPresetsV2.first { it.id == "flat" }) }
+    
+    /**
+     * Полный сброс ВСЕХ настроек эквалайзера до значений по умолчанию
+     */
+    fun resetAllSettings() {
+        // Сброс воспроизведения
+        playbackEffectManager.reset()
+        
+        // Сброс реальных аудио эффектов
+        audioEffectsManager.reset()
+        
+        // Сброс всего состояния до дефолтных значений
+        _uiState.value = EqualizerUiState(
+            mode = _uiState.value.mode, // Сохраняем текущий режим PRO/SIMPLE
+            isEnabled = true,
+            currentPresetId = "flat",
+            bands = List(10) { 0f },
+            preamp = 0f,
+            autoGainEnabled = true,
+            bassEnhancerAmount = 0f,
+            bassEnhancerFrequency = 80,
+            bassEnhancerMode = BassEnhancerMode.SOFT,
+            stereoWidth = 100f,
+            isMono = false,
+            loudnessEnabled = false,
+            balanceL = 0f,
+            playbackSpeed = 1.0f,
+            pitch = 1.0f,
+            playbackMode = PlaybackMode.NORMAL,
+            preservePitch = true,
+            isComparing = false,
+            presets = builtInPresetsV2,
+            // Сброс расширенных эффектов
+            reverb = ReverbSettings(),
+            compressor = CompressorSettings(),
+            noiseGate = NoiseGateSettings(),
+            deEsser = DeEsserSettings(),
+            subBass = SubBassSettings(),
+            // Сохраняем пользовательские пресеты
+            userPresets = _uiState.value.userPresets,
+            spectrumEnabled = false,
+            spectrumData = FloatArray(32)
+        )
+        
+        // Сохраняем сброшенные настройки
+        viewModelScope.launch {
+            preferencesManager.setEqualizerPreset("flat")
+            preferencesManager.setEqualizerBands("0,0,0,0,0,0,0,0,0,0")
+            preferencesManager.setBassBoost(0)
+            preferencesManager.setVirtualizer(0)
+            preferencesManager.setPlaybackSettings(1.0f, 1.0f, true)
+        }
+    }
 
     // ==================== ADVANCED EFFECTS ====================
     
@@ -286,21 +388,40 @@ class EqualizerViewModel @Inject constructor(
      */
     fun setReverb(settings: ReverbSettings) {
         _uiState.value = _uiState.value.copy(reverb = settings)
+        // Применяем к реальному эффекту
+        audioEffectsManager.setReverbEnabled(settings.enabled)
+        if (settings.enabled) {
+            audioEffectsManager.setReverbParams(settings.roomSize, settings.decay)
+        }
     }
     
     fun toggleReverb() {
         val current = _uiState.value.reverb
-        _uiState.value = _uiState.value.copy(reverb = current.copy(enabled = !current.enabled))
+        val newEnabled = !current.enabled
+        _uiState.value = _uiState.value.copy(reverb = current.copy(enabled = newEnabled))
+        // Применяем к реальному эффекту
+        audioEffectsManager.setReverbEnabled(newEnabled)
+        if (newEnabled) {
+            audioEffectsManager.setReverbParams(current.roomSize, current.decay)
+        }
     }
     
     fun setReverbRoomSize(size: Float) {
         val current = _uiState.value.reverb
         _uiState.value = _uiState.value.copy(reverb = current.copy(roomSize = size.coerceIn(0f, 1f)))
+        // Применяем к реальному эффекту
+        if (current.enabled) {
+            audioEffectsManager.setReverbParams(size, current.decay)
+        }
     }
     
     fun setReverbDecay(decay: Float) {
         val current = _uiState.value.reverb
         _uiState.value = _uiState.value.copy(reverb = current.copy(decay = decay.coerceIn(0f, 1f)))
+        // Применяем к реальному эффекту
+        if (current.enabled) {
+            audioEffectsManager.setReverbParams(current.roomSize, decay)
+        }
     }
     
     fun setReverbWetDry(mix: Float) {

@@ -19,6 +19,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.MediaStyleNotificationHelper
 import com.example.soundly.MainActivity
 import com.example.soundly.R
+import com.example.soundly.player.audio.AudioEffectsManager
 import com.example.soundly.player.audio.PlaybackEffectManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -29,6 +30,9 @@ class MusicService : MediaSessionService() {
 
     @Inject
     lateinit var playbackEffectManager: PlaybackEffectManager
+    
+    @Inject
+    lateinit var audioEffectsManager: AudioEffectsManager
 
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
@@ -65,6 +69,12 @@ class MusicService : MediaSessionService() {
         
         // Подключаем PlaybackEffectManager к плееру
         playbackEffectManager.attachPlayer(player)
+        
+        // Инициализируем аудио эффекты (эквалайзер, bass boost, virtualizer)
+        val audioSessionId = player.audioSessionId
+        if (audioSessionId != 0) {
+            audioEffectsManager.initialize(audioSessionId)
+        }
 
         val sessionActivityPendingIntent = PendingIntent.getActivity(
             this,
@@ -148,6 +158,7 @@ class MusicService : MediaSessionService() {
 
     override fun onDestroy() {
         playbackEffectManager.detachPlayer()
+        audioEffectsManager.release()
         mediaSession?.run {
             player.release()
             release()

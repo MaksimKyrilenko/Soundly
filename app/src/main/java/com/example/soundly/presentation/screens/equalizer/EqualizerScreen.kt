@@ -105,8 +105,16 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
                 title = { Text("Эквалайзер") },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
                 actions = {
-                    TextButton(onClick = { viewModel.toggleMode() }) { Text(if (uiState.mode == EqualizerMode.SIMPLE) "PRO" else "SIMPLE") }
-                    Switch(checked = uiState.isEnabled, onCheckedChange = { viewModel.toggleEnabled() })
+                    // Кнопка сброса всех настроек
+                    IconButton(onClick = { viewModel.resetAllSettings() }) {
+                        Icon(Icons.Default.Refresh, "Сбросить всё", tint = LocalColorPalette.current.textPrimary)
+                    }
+                    // Переключатель PRO/SIMPLE режима
+                    FilterChip(
+                        selected = uiState.mode == EqualizerMode.PRO,
+                        onClick = { viewModel.toggleMode() },
+                        label = { Text(if (uiState.mode == EqualizerMode.PRO) "PRO" else "SIMPLE") }
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
             )
