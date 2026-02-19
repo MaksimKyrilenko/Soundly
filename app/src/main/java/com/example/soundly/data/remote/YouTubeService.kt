@@ -91,42 +91,56 @@ class YouTubeService @Inject constructor(
             }
             
             // Fallback на yt-dlp если NewPipe не сработал
-            Log.w(TAG, "NewPipe failed, trying yt-dlp fallback")
+            Log.w(TAG, "NewPipe failed: ${newPipeResult.exceptionOrNull()?.message}, trying yt-dlp fallback")
             val videoId = extractVideoId(url) 
                 ?: return@withContext Result.failure(Exception("Неверная ссылка YouTube"))
             
             try {
-                YoutubeDL.getInstance().updateYoutubeDL(context)
+                if (!SoundlyApp.isYoutubeDLReady) {
+                    return@withContext Result.failure(Exception("Загрузчик YouTube еще не готов. Подождите несколько секунд."))
+                }
+                
+                try {
+                    YoutubeDL.getInstance().updateYoutubeDL(context)
+                    Log.d(TAG, "yt-dlp updated successfully")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to update yt-dlp: ${e.message}")
+                }
+                
+                val request = YoutubeDLRequest(url)
+                request.addOption("--dump-json")
+                request.addOption("--no-playlist")
+                request.addOption("--extractor-args", "youtube:player_client=android,web")
+                
+                val response = YoutubeDL.getInstance().execute(request)
+                val jsonResponse = response.out
+                
+                if (jsonResponse.isBlank()) {
+                    return@withContext Result.failure(Exception("yt-dlp вернул пустой ответ"))
+                }
+                
+                val jsonObject = json.parseToJsonElement(jsonResponse).jsonObject
+                
+                val title = jsonObject["title"]?.toString()?.trim('"') ?: "Без названия"
+                val uploader = jsonObject["uploader"]?.toString()?.trim('"') ?: "Неизвестный исполнитель"
+                val thumbnail = jsonObject["thumbnail"]?.toString()?.trim('"') 
+                    ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
+                val duration = jsonObject["duration"]?.toString()?.toLongOrNull() ?: 0L
+                
+                val videoInfo = VideoInfo(
+                    id = videoId,
+                    title = title,
+                    author = uploader,
+                    thumbnail = thumbnail,
+                    duration = duration,
+                    durationFormatted = formatDuration(duration)
+                )
+                
+                Result.success(videoInfo)
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to update yt-dlp: ${e.message}")
+                Log.e(TAG, "yt-dlp fallback failed", e)
+                Result.failure(Exception("Не удалось загрузить информацию: ${e.message}"))
             }
-            
-            val request = YoutubeDLRequest(url)
-            request.addOption("--dump-json")
-            request.addOption("--no-playlist")
-            request.addOption("--extractor-args", "youtube:player_client=android,web")
-            
-            val response = YoutubeDL.getInstance().execute(request)
-            val jsonResponse = response.out
-            
-            val jsonObject = json.parseToJsonElement(jsonResponse).jsonObject
-            
-            val title = jsonObject["title"]?.toString()?.trim('"') ?: "Без названия"
-            val uploader = jsonObject["uploader"]?.toString()?.trim('"') ?: "Неизвестный исполнитель"
-            val thumbnail = jsonObject["thumbnail"]?.toString()?.trim('"') 
-                ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
-            val duration = jsonObject["duration"]?.toString()?.toLongOrNull() ?: 0L
-            
-            val videoInfo = VideoInfo(
-                id = videoId,
-                title = title,
-                author = uploader,
-                thumbnail = thumbnail,
-                duration = duration,
-                durationFormatted = formatDuration(duration)
-            )
-            
-            Result.success(videoInfo)
         } catch (e: Exception) {
             Log.e(TAG, "All methods failed", e)
             Result.failure(Exception("Ошибка получения информации: ${e.message}"))
