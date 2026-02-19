@@ -45,7 +45,9 @@ sealed class DownloadProgress {
 }
 
 @Singleton
-class YouTubeService @Inject constructor() {
+class YouTubeService @Inject constructor(
+    private val newPipeService: NewPipeYouTubeService
+) {
     
     companion object {
         private const val TAG = "YouTubeService"
@@ -79,28 +81,8 @@ class YouTubeService @Inject constructor() {
     
     suspend fun getVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
         try {
-            val videoId = extractVideoId(url) ?: return@withContext Result.failure(Exception("Неверная ссылка YouTube"))
-            
-            // Используем noembed.com для быстрого получения базовой информации
-            val response = client.get("https://noembed.com/embed?url=https://www.youtube.com/watch?v=$videoId")
-            val responseText = response.bodyAsText()
-            
-            val noembedData = json.decodeFromString<NoembedResponse>(responseText)
-            
-            if (noembedData.error != null) {
-                return@withContext Result.failure(Exception(noembedData.error))
-            }
-            
-            val videoInfo = VideoInfo(
-                id = videoId,
-                title = noembedData.title ?: "Без названия",
-                author = noembedData.authorName ?: "Неизвестный исполнитель",
-                thumbnail = noembedData.thumbnailUrl ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg",
-                duration = 0,
-                durationFormatted = ""
-            )
-            
-            Result.success(videoInfo)
+            // Используем NewPipe вместо noembed
+            newPipeService.getVideoInfo(url)
         } catch (e: Exception) {
             Result.failure(Exception("Ошибка получения информации: ${e.message}"))
         }
@@ -114,132 +96,11 @@ class YouTubeService @Inject constructor() {
         customArtist: String
     ): Flow<DownloadProgress> = flow {
         try {
-            emit(DownloadProgress.Fetching("Подготовка загрузчика..."))
-            
-            // Ждём инициализации YoutubeDL (максимум 30 секунд)
-            var waitTime = 0
-            while (!SoundlyApp.isYoutubeDLReady && SoundlyApp.initError == null && waitTime < 30000) {
-                kotlinx.coroutines.delay(500)
-                waitTime += 500
-                if (waitTime % 5000 == 0) {
-                    emit(DownloadProgress.Fetching("Инициализация... ${waitTime / 1000}с"))
+            // Используем NewPipe для загрузки
+            newPipeService.downloadAudio(context, videoInfo, customTitle, customArtist)
+                .collect { progress ->
+                    emit(progress)
                 }
-            }
-            
-            if (!SoundlyApp.isYoutubeDLReady) {
-                val error = SoundlyApp.initError ?: "Таймаут инициализации"
-                Log.e(TAG, "YoutubeDL not ready: $error")
-                emit(DownloadProgress.Error("Загрузчик недоступен: $error"))
-                return@flow
-            }
-            
-            emit(DownloadProgress.Fetching("Получение аудио..."))
-            
-            // Используем приватную папку приложения (не требует разрешений)
-            val musicDir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Downloads")
-            if (!musicDir.exists()) musicDir.mkdirs()
-            
-            // Очищаем имя файла
-            val safeTitle = customTitle.replace(Regex("[\\\\/:*?\"<>|]"), "_")
-            val safeArtist = customArtist.replace(Regex("[\\\\/:*?\"<>|]"), "_")
-            val fileName = "$safeArtist - $safeTitle"
-            
-            val videoUrl = "https://www.youtube.com/watch?v=${videoInfo.id}"
-            
-            val request = YoutubeDLRequest(videoUrl)
-            // Скачиваем лучший аудио формат без конвертации
-            request.addOption("-f", "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio")
-            request.addOption("-o", "${musicDir.absolutePath}/$fileName.%(ext)s")
-            request.addOption("--no-playlist")
-            // Не используем post-processing чтобы избежать проблем с FFmpeg
-            
-            emit(DownloadProgress.Downloading(0f))
-            
-            var lastProgress = 0f
-            var downloadError: String? = null
-            
-            try {
-                withContext(Dispatchers.IO) {
-                    YoutubeDL.getInstance().execute(request) { progress, etaInSeconds, line ->
-                        val currentProgress = progress / 100f
-                        if (currentProgress > lastProgress) {
-                            lastProgress = currentProgress
-                        }
-                        Log.d(TAG, "Progress: $progress%, ETA: ${etaInSeconds}s, Line: $line")
-                    }
-                }
-            } catch (e: Exception) {
-                // Сохраняем ошибку, но проверим файлы
-                downloadError = e.message
-                Log.w(TAG, "Download exception (checking files anyway): ${e.message}")
-            }
-            
-            emit(DownloadProgress.Downloading(1f))
-            emit(DownloadProgress.Converting("Сохранение..."))
-            
-            // Ищем скачанный файл (может быть webm, m4a, mp3 и т.д.)
-            val possibleFiles = musicDir.listFiles { file -> 
-                file.name.startsWith(fileName) && file.isFile && file.length() > 0
-            }
-            
-            if (!possibleFiles.isNullOrEmpty()) {
-                val downloadedFile = possibleFiles.first()
-                Log.d(TAG, "Found downloaded file: ${downloadedFile.name}, size: ${downloadedFile.length()}")
-                
-                // Копируем в публичную папку Music/Soundly
-                val publicMusicDir = File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-                    "Soundly"
-                )
-                if (!publicMusicDir.exists()) publicMusicDir.mkdirs()
-                
-                val publicFile = File(publicMusicDir, downloadedFile.name)
-                try {
-                    downloadedFile.copyTo(publicFile, overwrite = true)
-                    downloadedFile.delete()
-                    
-                    // Скачиваем обложку локально - сохраняем с именем аудиофайла
-                    var localThumbnailPath: String? = null
-                    try {
-                        val thumbnailDir = File(publicMusicDir, ".thumbnails")
-                        if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
-                        
-                        // Используем имя аудиофайла (без расширения) для обложки
-                        val audioFileName = publicFile.name.substringBeforeLast(".")
-                        val thumbnailFile = File(thumbnailDir, "$audioFileName.jpg")
-                        if (!thumbnailFile.exists() && videoInfo.thumbnail.isNotBlank()) {
-                            withContext(Dispatchers.IO) {
-                                URL(videoInfo.thumbnail).openStream().use { input ->
-                                    thumbnailFile.outputStream().use { output ->
-                                        input.copyTo(output)
-                                    }
-                                }
-                            }
-                        }
-                        if (thumbnailFile.exists()) {
-                            localThumbnailPath = thumbnailFile.absolutePath
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to download thumbnail: ${e.message}")
-                    }
-                    
-                    MediaScannerConnection.scanFile(
-                        context,
-                        arrayOf(publicFile.absolutePath),
-                        arrayOf("audio/*"),
-                        null
-                    )
-                    emit(DownloadProgress.Success(publicFile.absolutePath, localThumbnailPath))
-                } catch (e: Exception) {
-                    Log.w(TAG, "Could not copy to public dir: ${e.message}")
-                    emit(DownloadProgress.Success(downloadedFile.absolutePath, null))
-                }
-            } else if (downloadError != null) {
-                emit(DownloadProgress.Error("Ошибка: $downloadError"))
-            } else {
-                emit(DownloadProgress.Error("Файл не найден после скачивания"))
-            }
-            
         } catch (e: Exception) {
             Log.e(TAG, "Download error: ${e.message}", e)
             emit(DownloadProgress.Error("Ошибка: ${e.message}"))

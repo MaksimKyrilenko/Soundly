@@ -48,6 +48,16 @@ class SoundlyApp : Application() {
         try {
             Log.w(TAG, "Attempt 1: Normal init...")
             YoutubeDL.getInstance().init(this@SoundlyApp)
+            
+            // Обновляем yt-dlp до последней версии
+            try {
+                Log.w(TAG, "Updating yt-dlp...")
+                YoutubeDL.getInstance().updateYoutubeDL(this@SoundlyApp)
+                Log.w(TAG, "yt-dlp updated successfully")
+            } catch (e: Exception) {
+                Log.w(TAG, "yt-dlp update failed (not critical): ${e.message}")
+            }
+            
             isYoutubeDLReady = true
             initError = null
             Log.w(TAG, "=== SUCCESS! YoutubeDL Ready ===")
@@ -70,6 +80,16 @@ class SoundlyApp : Application() {
             
             delay(500)
             YoutubeDL.getInstance().init(this@SoundlyApp)
+            
+            // Обновляем yt-dlp
+            try {
+                Log.w(TAG, "Updating yt-dlp...")
+                YoutubeDL.getInstance().updateYoutubeDL(this@SoundlyApp)
+                Log.w(TAG, "yt-dlp updated successfully")
+            } catch (e: Exception) {
+                Log.w(TAG, "yt-dlp update failed (not critical): ${e.message}")
+            }
+            
             isYoutubeDLReady = true
             initError = null
             Log.w(TAG, "=== SUCCESS after clean! ===")

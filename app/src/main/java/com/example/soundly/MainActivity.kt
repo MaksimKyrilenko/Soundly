@@ -29,7 +29,6 @@ import com.example.soundly.presentation.theme.ColorPalette
 import com.example.soundly.presentation.theme.SoundlyTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 

@@ -116,6 +116,9 @@ dependencies {
     implementation(libs.youtubedl.android.ffmpeg)
     implementation(libs.youtubedl.android.aria2c)
     
+    // NewPipe Extractor (альтернатива для YouTube)
+    implementation(libs.newpipe.extractor)
+    
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
