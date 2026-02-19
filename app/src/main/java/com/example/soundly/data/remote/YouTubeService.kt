@@ -16,7 +16,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -84,66 +86,46 @@ class YouTubeService @Inject constructor(
     
     suspend fun getVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
         try {
-            // Пробуем NewPipe
-            val newPipeResult = newPipeService.getVideoInfo(url)
-            if (newPipeResult.isSuccess) {
-                return@withContext newPipeResult
-            }
-            
-            // Fallback на yt-dlp если NewPipe не сработал
-            Log.w(TAG, "NewPipe failed: ${newPipeResult.exceptionOrNull()?.message}, trying yt-dlp fallback")
             val videoId = extractVideoId(url) 
                 ?: return@withContext Result.failure(Exception("Неверная ссылка YouTube"))
             
-            try {
-                if (!SoundlyApp.isYoutubeDLReady) {
-                    return@withContext Result.failure(Exception("Загрузчик YouTube еще не готов. Подождите несколько секунд."))
-                }
-                
-                try {
-                    YoutubeDL.getInstance().updateYoutubeDL(context)
-                    Log.d(TAG, "yt-dlp updated successfully")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to update yt-dlp: ${e.message}")
-                }
-                
-                val request = YoutubeDLRequest(url)
-                request.addOption("--dump-json")
-                request.addOption("--no-playlist")
-                request.addOption("--extractor-args", "youtube:player_client=android,web")
-                
-                val response = YoutubeDL.getInstance().execute(request)
-                val jsonResponse = response.out
-                
-                if (jsonResponse.isBlank()) {
-                    return@withContext Result.failure(Exception("yt-dlp вернул пустой ответ"))
-                }
-                
-                val jsonObject = json.parseToJsonElement(jsonResponse).jsonObject
-                
-                val title = jsonObject["title"]?.toString()?.trim('"') ?: "Без названия"
-                val uploader = jsonObject["uploader"]?.toString()?.trim('"') ?: "Неизвестный исполнитель"
-                val thumbnail = jsonObject["thumbnail"]?.toString()?.trim('"') 
-                    ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
-                val duration = jsonObject["duration"]?.toString()?.toLongOrNull() ?: 0L
-                
-                val videoInfo = VideoInfo(
-                    id = videoId,
-                    title = title,
-                    author = uploader,
-                    thumbnail = thumbnail,
-                    duration = duration,
-                    durationFormatted = formatDuration(duration)
-                )
-                
-                Result.success(videoInfo)
-            } catch (e: Exception) {
-                Log.e(TAG, "yt-dlp fallback failed", e)
-                Result.failure(Exception("Не удалось загрузить информацию: ${e.message}"))
+            if (!SoundlyApp.isYoutubeDLReady) {
+                return@withContext Result.failure(Exception("Загрузчик YouTube еще не готов. Подождите несколько секунд."))
             }
+            
+            val request = YoutubeDLRequest(url)
+            request.addOption("--dump-json")
+            request.addOption("--no-playlist")
+            request.addOption("--extractor-args", "youtube:player_client=web")
+            
+            val response = YoutubeDL.getInstance().execute(request)
+            val jsonResponse = response.out
+            
+            if (jsonResponse.isBlank()) {
+                return@withContext Result.failure(Exception("yt-dlp вернул пустой ответ"))
+            }
+            
+            val jsonObject = json.parseToJsonElement(jsonResponse).jsonObject
+            
+            val title = jsonObject["title"]?.toString()?.trim('"') ?: "Без названия"
+            val uploader = jsonObject["uploader"]?.toString()?.trim('"') ?: "Неизвестный исполнитель"
+            val thumbnail = jsonObject["thumbnail"]?.toString()?.trim('"') 
+                ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
+            val duration = jsonObject["duration"]?.toString()?.toLongOrNull() ?: 0L
+            
+            val videoInfo = VideoInfo(
+                id = videoId,
+                title = title,
+                author = uploader,
+                thumbnail = thumbnail,
+                duration = duration,
+                durationFormatted = formatDuration(duration)
+            )
+            
+            Result.success(videoInfo)
         } catch (e: Exception) {
-            Log.e(TAG, "All methods failed", e)
-            Result.failure(Exception("Ошибка получения информации: ${e.message}"))
+            Log.e(TAG, "Failed to get video info", e)
+            Result.failure(Exception("Не удалось загрузить информацию: ${e.message}"))
         }
     }
     
@@ -165,16 +147,117 @@ class YouTubeService @Inject constructor(
         videoInfo: VideoInfo,
         customTitle: String,
         customArtist: String
-    ): Flow<DownloadProgress> = flow {
+    ): Flow<DownloadProgress> = kotlinx.coroutines.flow.callbackFlow {
         try {
-            // Используем NewPipe для загрузки
-            newPipeService.downloadAudio(context, videoInfo, customTitle, customArtist)
-                .collect { progress ->
-                    emit(progress)
+            if (!SoundlyApp.isYoutubeDLReady) {
+                trySend(DownloadProgress.Error("Загрузчик YouTube еще не готов"))
+                close()
+                return@callbackFlow
+            }
+            
+            trySend(DownloadProgress.Fetching("Подготовка к загрузке..."))
+            
+            // Создаем папку для загрузок
+            val musicDir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                "Soundly"
+            )
+            if (!musicDir.exists()) musicDir.mkdirs()
+            
+            // Очищаем имя файла
+            val safeTitle = customTitle.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            val safeArtist = customArtist.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            val fileName = "$safeArtist - $safeTitle"
+            
+            val outputFile = File(musicDir, "$fileName.%(ext)s")
+            
+            trySend(DownloadProgress.Fetching("Начало загрузки..."))
+            
+            val request = YoutubeDLRequest("https://www.youtube.com/watch?v=${videoInfo.id}")
+            request.addOption("-x") // Извлечь аудио
+            request.addOption("--audio-format", "mp3")
+            request.addOption("--audio-quality", "0") // Лучшее качество
+            request.addOption("-o", outputFile.absolutePath)
+            request.addOption("--no-playlist")
+            request.addOption("--extractor-args", "youtube:player_client=web")
+            
+            // Запускаем в отдельном потоке чтобы не блокировать UI
+            val downloadThread = Thread {
+                try {
+                    var lastProgress = 0f
+                    YoutubeDL.getInstance().execute(request) { progress, _, line ->
+                        if (progress > lastProgress) {
+                            lastProgress = progress
+                            trySend(DownloadProgress.Downloading(progress / 100f))
+                        }
+                    }
+                    
+                    trySend(DownloadProgress.Converting("Сохранение..."))
+                    
+                    // Находим скачанный файл
+                    val downloadedFile = musicDir.listFiles()?.find { 
+                        it.name.startsWith("$safeArtist - $safeTitle") && 
+                        (it.extension == "mp3" || it.extension == "m4a" || it.extension == "webm")
+                    }
+                    
+                    if (downloadedFile == null || !downloadedFile.exists()) {
+                        trySend(DownloadProgress.Error("Файл не найден после загрузки"))
+                        close()
+                        return@Thread
+                    }
+                    
+                    // Скачиваем обложку
+                    var localThumbnailPath: String? = null
+                    try {
+                        val thumbnailDir = File(musicDir, ".thumbnails")
+                        if (!thumbnailDir.exists()) thumbnailDir.mkdirs()
+                        
+                        val thumbnailFile = File(thumbnailDir, "$fileName.jpg")
+                        if (!thumbnailFile.exists() && videoInfo.thumbnail.isNotBlank()) {
+                            URL(videoInfo.thumbnail).openStream().use { input ->
+                                thumbnailFile.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                        }
+                        if (thumbnailFile.exists()) {
+                            localThumbnailPath = thumbnailFile.absolutePath
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to download thumbnail: ${e.message}")
+                    }
+                    
+                    // Сканируем файл
+                    MediaScannerConnection.scanFile(
+                        context,
+                        arrayOf(downloadedFile.absolutePath),
+                        arrayOf("audio/*"),
+                        null
+                    )
+                    
+                    trySend(DownloadProgress.Success(downloadedFile.absolutePath, localThumbnailPath))
+                    close()
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "Download error in thread", e)
+                    trySend(DownloadProgress.Error("Ошибка загрузки: ${e.message}"))
+                    close()
                 }
+            }
+            
+            downloadThread.start()
+            
+            // Ждем завершения потока
+            awaitClose {
+                if (downloadThread.isAlive) {
+                    downloadThread.interrupt()
+                }
+            }
+            
         } catch (e: Exception) {
-            Log.e(TAG, "Download error: ${e.message}", e)
-            emit(DownloadProgress.Error("Ошибка: ${e.message}"))
+            Log.e(TAG, "Download error", e)
+            trySend(DownloadProgress.Error("Ошибка загрузки: ${e.message}"))
+            close()
         }
     }
     
