@@ -7,6 +7,7 @@ import android.util.Log
 import com.example.soundly.SoundlyApp
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.android.*
@@ -21,6 +22,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import java.io.File
 import java.net.URL
 import javax.inject.Inject
@@ -46,7 +48,8 @@ sealed class DownloadProgress {
 
 @Singleton
 class YouTubeService @Inject constructor(
-    private val newPipeService: NewPipeYouTubeService
+    private val newPipeService: NewPipeYouTubeService,
+    @ApplicationContext private val context: Context
 ) {
     
     companion object {
@@ -81,10 +84,64 @@ class YouTubeService @Inject constructor(
     
     suspend fun getVideoInfo(url: String): Result<VideoInfo> = withContext(Dispatchers.IO) {
         try {
-            // Используем NewPipe вместо noembed
-            newPipeService.getVideoInfo(url)
+            // Пробуем NewPipe
+            val newPipeResult = newPipeService.getVideoInfo(url)
+            if (newPipeResult.isSuccess) {
+                return@withContext newPipeResult
+            }
+            
+            // Fallback на yt-dlp если NewPipe не сработал
+            Log.w(TAG, "NewPipe failed, trying yt-dlp fallback")
+            val videoId = extractVideoId(url) 
+                ?: return@withContext Result.failure(Exception("Неверная ссылка YouTube"))
+            
+            try {
+                YoutubeDL.getInstance().updateYoutubeDL(context)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to update yt-dlp: ${e.message}")
+            }
+            
+            val request = YoutubeDLRequest(url)
+            request.addOption("--dump-json")
+            request.addOption("--no-playlist")
+            request.addOption("--extractor-args", "youtube:player_client=android,web")
+            
+            val response = YoutubeDL.getInstance().execute(request)
+            val jsonResponse = response.out
+            
+            val jsonObject = json.parseToJsonElement(jsonResponse).jsonObject
+            
+            val title = jsonObject["title"]?.toString()?.trim('"') ?: "Без названия"
+            val uploader = jsonObject["uploader"]?.toString()?.trim('"') ?: "Неизвестный исполнитель"
+            val thumbnail = jsonObject["thumbnail"]?.toString()?.trim('"') 
+                ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
+            val duration = jsonObject["duration"]?.toString()?.toLongOrNull() ?: 0L
+            
+            val videoInfo = VideoInfo(
+                id = videoId,
+                title = title,
+                author = uploader,
+                thumbnail = thumbnail,
+                duration = duration,
+                durationFormatted = formatDuration(duration)
+            )
+            
+            Result.success(videoInfo)
         } catch (e: Exception) {
+            Log.e(TAG, "All methods failed", e)
             Result.failure(Exception("Ошибка получения информации: ${e.message}"))
+        }
+    }
+    
+    private fun formatDuration(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+        
+        return if (hours > 0) {
+            String.format("%d:%02d:%02d", hours, minutes, secs)
+        } else {
+            String.format("%d:%02d", minutes, secs)
         }
     }
 

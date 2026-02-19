@@ -90,7 +90,7 @@ youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", n
 youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", name = "aria2c", version = "0.18.1" }
 
 # NewPipe Extractor (альтернатива для YouTube)
-newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version = "v0.24.2" }
+newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version = "v0.24.5" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
