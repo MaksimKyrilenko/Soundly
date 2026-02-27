@@ -222,8 +222,38 @@ class PlaybackEffectManager @Inject constructor(
             val playbackParams = PlaybackParameters(params.speed, params.pitch)
             exo.playbackParameters = playbackParams
             
+            // Компенсация громкости при изменении скорости
+            // При ускорении звук становится громче, при замедлении - тише
+            val volumeCompensation = calculateVolumeCompensation(params.speed)
+            exo.volume = volumeCompensation
+            
             android.util.Log.d("PlaybackEffectManager", 
-                "Applied: effect=${_currentEffect.value}, speed=${params.speed}, pitch=${params.pitch}, preservePitch=${_preservePitch.value}")
+                "Applied: effect=${_currentEffect.value}, speed=${params.speed}, pitch=${params.pitch}, " +
+                "preservePitch=${_preservePitch.value}, volume=$volumeCompensation")
+        }
+    }
+    
+    /**
+     * Рассчитать компенсацию громкости на основе скорости
+     * При ускорении уменьшаем громкость, при замедлении увеличиваем
+     */
+    private fun calculateVolumeCompensation(speed: Float): Float {
+        return when {
+            // Нормальная скорость - нормальная громкость
+            speed == 1.0f -> 1.0f
+            // Ускорение (1.0 - 3.0x) - уменьшаем громкость
+            speed > 1.0f -> {
+                // Формула: volume = 1.0 / sqrt(speed)
+                // При 1.5x -> ~0.82, при 2.0x -> ~0.71, при 3.0x -> ~0.58
+                (1.0f / kotlin.math.sqrt(speed)).coerceIn(0.5f, 1.0f)
+            }
+            // Замедление (0.25 - 1.0x) - увеличиваем громкость
+            speed < 1.0f -> {
+                // Формула: volume = sqrt(1.0 / speed)
+                // При 0.75x -> ~1.15, при 0.5x -> ~1.41, при 0.25x -> ~2.0
+                kotlin.math.sqrt(1.0f / speed).coerceIn(1.0f, 1.5f)
+            }
+            else -> 1.0f
         }
     }
     

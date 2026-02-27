@@ -16,6 +16,7 @@ import com.example.soundly.domain.model.PlayerState
 import com.example.soundly.domain.model.PlaybackMode
 import com.example.soundly.domain.model.RepeatMode
 import com.example.soundly.domain.model.Track
+import com.example.soundly.player.audio.AudioReactiveController
 import com.example.soundly.player.audio.PlaybackEffect
 import com.example.soundly.player.audio.PlaybackEffectManager
 import com.example.soundly.player.audio.PlaybackParams
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.media3.common.C
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,13 +37,17 @@ import javax.inject.Singleton
 @Singleton
 class PlayerController @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val playbackEffectManager: PlaybackEffectManager
+    private val playbackEffectManager: PlaybackEffectManager,
+    private val audioEffectsManager: com.example.soundly.player.audio.AudioEffectsManager
 ) {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val executor = Executors.newSingleThreadExecutor()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    
+    // Audio Reactive Controller для анимации обложки
+    private val audioReactiveController = AudioReactiveController()
     
     private var pendingPlayRequest: Pair<Track, List<Track>>? = null
     private var isInitializing = false
@@ -63,6 +69,12 @@ class PlayerController @Inject constructor(
     // Expose effect manager state
     val currentEffect: StateFlow<PlaybackEffect> = playbackEffectManager.currentEffect
     val currentParams: StateFlow<PlaybackParams> = playbackEffectManager.currentParams
+    
+    // Expose audio visualization data from AudioReactiveController
+    val amplitude: StateFlow<Float> = audioReactiveController.amplitude
+    val bassLevel: StateFlow<Float> = audioReactiveController.bassLevel
+    val beatDetected: StateFlow<Boolean> = audioReactiveController.beatDetected
+    val coverScale: StateFlow<Float> = audioReactiveController.scale
 
     init {
         // Подписываемся на изменения параметров воспроизведения
@@ -124,6 +136,10 @@ class PlayerController @Inject constructor(
                     isInitialized = true
                     isInitializing = false
                     android.util.Log.d("PlayerController", "MediaController initialized successfully")
+                    
+                    // AudioReactiveController будет инициализирован через MusicService
+                    // когда получим audioSessionId
+                    
                     mainHandler.post { 
                         setupPlayerListener()
                         startPositionUpdates()
@@ -338,9 +354,31 @@ class PlayerController @Inject constructor(
     }
 
     fun release() {
+        audioReactiveController.release()
         mainHandler.removeCallbacks(positionUpdateRunnable)
         controllerFuture?.let { MediaController.releaseFuture(it) }
         mediaController = null
+    }
+    
+    // Методы управления AudioReactiveController
+    fun initializeAudioReactive(audioSessionId: Int) {
+        audioReactiveController.initialize(audioSessionId)
+    }
+    
+    fun setAudioReactiveEnabled(enabled: Boolean) {
+        audioReactiveController.setEnabled(enabled)
+    }
+    
+    fun setAudioReactiveSensitivity(sensitivity: Float) {
+        audioReactiveController.setSensitivity(sensitivity)
+    }
+    
+    fun pauseAudioReactive() {
+        audioReactiveController.pause()
+    }
+    
+    fun resumeAudioReactive() {
+        audioReactiveController.resume()
     }
 
     private fun Track.toMediaItem(): MediaItem {

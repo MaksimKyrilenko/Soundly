@@ -19,9 +19,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.soundly.R
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.screens.home.formatDuration
 import com.example.soundly.presentation.theme.backgroundGradient
@@ -184,7 +186,9 @@ fun FavoriteTrackItem(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.ic_default_album_art),
+                placeholder = painterResource(R.drawable.ic_default_album_art)
             )
             
             Spacer(modifier = Modifier.width(12.dp))

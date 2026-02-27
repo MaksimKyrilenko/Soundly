@@ -5,12 +5,14 @@ import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
+import android.media.audiofx.Visualizer
 import android.os.Build
 import android.util.Log
 import com.example.soundly.data.local.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * Менеджер аудио эффектов - управляет реальными Android AudioFX
@@ -38,8 +42,23 @@ class AudioEffectsManager @Inject constructor(
     private var virtualizer: Virtualizer? = null
     private var presetReverb: PresetReverb? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var visualizer: Visualizer? = null
     
     private var audioSessionId: Int = 0
+    
+    // Audio visualization data
+    private val _bassLevel = MutableStateFlow(0f)
+    val bassLevel: StateFlow<Float> = _bassLevel.asStateFlow()
+    
+    private val _beatDetected = MutableStateFlow(false)
+    val beatDetected: StateFlow<Boolean> = _beatDetected.asStateFlow()
+    
+    private val _waveformData = MutableStateFlow(ByteArray(0))
+    val waveformData: StateFlow<ByteArray> = _waveformData.asStateFlow()
+    
+    private var lastBeatTime = 0L
+    private val beatThreshold = 1.3f // Порог для определения бита
+    private val beatCooldown = 300L // Минимальное время между битами (мс)
     
     private val _isEnabled = MutableStateFlow(true)
     val isEnabled: StateFlow<Boolean> = _isEnabled.asStateFlow()
@@ -124,6 +143,40 @@ class AudioEffectsManager @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "LoudnessEnhancer not supported: ${e.message}")
+            }
+            
+            // Создаём Visualizer для анализа аудио
+            try {
+                visualizer = Visualizer(sessionId).apply {
+                    captureSize = Visualizer.getCaptureSizeRange()[1] // Максимальный размер
+                    Log.d(TAG, "Visualizer capture size: $captureSize, range: ${Visualizer.getCaptureSizeRange().contentToString()}")
+                    
+                    setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                        override fun onWaveFormDataCapture(
+                            visualizer: Visualizer?,
+                            waveform: ByteArray?,
+                            samplingRate: Int
+                        ) {
+                            waveform?.let { 
+                                _waveformData.value = it
+                                analyzeBassAndBeat(it)
+                            }
+                        }
+                        
+                        override fun onFftDataCapture(
+                            visualizer: Visualizer?,
+                            fft: ByteArray?,
+                            samplingRate: Int
+                        ) {
+                            // FFT данные можно использовать для более точного анализа
+                        }
+                    }, Visualizer.getMaxCaptureRate() / 2, true, false)
+                    enabled = true
+                    Log.d(TAG, "Visualizer enabled successfully")
+                }
+                Log.d(TAG, "Visualizer created for audio analysis")
+            } catch (e: Exception) {
+                Log.e(TAG, "Visualizer not supported: ${e.message}", e)
             }
             
             // Загружаем сохранённые настройки
@@ -212,14 +265,20 @@ class AudioEffectsManager @Inject constructor(
                 val minLevel = range[0].toFloat()
                 val maxLevel = range[1].toFloat()
                 
-                // Маппим наши 10 полос на реальные полосы эквалайзера
-                // Android эквалайзер обычно имеет 5 полос
-                val targetBand = (bandIndex * numBands / 10).coerceIn(0, numBands - 1)
+                // Конвертируем dB в уровень эквалайзера (millibels)
+                // Android использует millibels: 1 dB = 100 millibels
+                val levelInMillibels = (value * 100).toInt().toShort()
                 
-                // Конвертируем dB в уровень эквалайзера
-                val level = ((value + 12f) / 24f * (maxLevel - minLevel) + minLevel).toInt().toShort()
+                // Если у нас 10 полос UI и 10 полос в Android - прямой маппинг
+                if (numBands == 10) {
+                    eq.setBandLevel(bandIndex.toShort(), levelInMillibels)
+                } else {
+                    // Если полос меньше (обычно 5), маппим несколько UI полос на одну реальную
+                    val targetBand = (bandIndex * numBands / 10).coerceIn(0, numBands - 1)
+                    eq.setBandLevel(targetBand.toShort(), levelInMillibels)
+                }
                 
-                eq.setBandLevel(targetBand.toShort(), level)
+                Log.d(TAG, "Set band $bandIndex to ${value}dB (${levelInMillibels}mb) -> real band ${if (numBands == 10) bandIndex else (bandIndex * numBands / 10)}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to set band $bandIndex", e)
             }
@@ -230,20 +289,26 @@ class AudioEffectsManager @Inject constructor(
         equalizer?.let { eq ->
             try {
                 val numBands = eq.numberOfBands.toInt()
-                val range = eq.bandLevelRange
-                val minLevel = range[0].toFloat()
-                val maxLevel = range[1].toFloat()
                 
-                for (i in 0 until numBands) {
-                    // Маппим 10 полос UI на реальные полосы
-                    val sourceIndex = (i * 10 / numBands).coerceIn(0, 9)
-                    val value = values[sourceIndex]
-                    
-                    val level = ((value + 12f) / 24f * (maxLevel - minLevel) + minLevel).toInt().toShort()
-                    eq.setBandLevel(i.toShort(), level)
+                Log.d(TAG, "Applying EQ bands: numBands=$numBands, values=$values")
+                
+                if (numBands == 10) {
+                    // Прямой маппинг 1:1
+                    for (i in 0 until 10) {
+                        val levelInMillibels = (values[i] * 100).toInt().toShort()
+                        eq.setBandLevel(i.toShort(), levelInMillibels)
+                    }
+                } else {
+                    // Маппим 10 UI полос на меньшее количество реальных полос
+                    for (i in 0 until numBands) {
+                        val sourceIndex = (i * 10 / numBands).coerceIn(0, 9)
+                        val value = values[sourceIndex]
+                        val levelInMillibels = (value * 100).toInt().toShort()
+                        eq.setBandLevel(i.toShort(), levelInMillibels)
+                    }
                 }
                 
-                Log.d(TAG, "Applied EQ bands: $values")
+                Log.d(TAG, "Applied EQ bands successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to apply EQ bands", e)
             }
@@ -443,10 +508,58 @@ class AudioEffectsManager @Inject constructor(
     }
     
     /**
+     * Анализ басов и битов из waveform данных
+     */
+    private fun analyzeBassAndBeat(waveform: ByteArray) {
+        if (waveform.isEmpty()) return
+        
+        try {
+            // Вычисляем RMS (Root Mean Square) для определения общей громкости
+            var sum = 0.0
+            for (i in waveform.indices) {
+                val sample = (waveform[i].toInt() - 128) / 128.0
+                sum += sample * sample
+            }
+            val rms = sqrt(sum / waveform.size)
+            
+            // Анализируем низкие частоты (басы) - первая треть waveform
+            var bassSum = 0.0
+            val bassRange = waveform.size / 3
+            for (i in 0 until bassRange) {
+                val sample = abs((waveform[i].toInt() - 128) / 128.0)
+                bassSum += sample
+            }
+            val bassAvg = (bassSum / bassRange).toFloat()
+            
+            // Обновляем уровень басов (0.0 - 1.0)
+            val newBassLevel = bassAvg.coerceIn(0f, 1f)
+            _bassLevel.value = newBassLevel
+            
+            // Определение бита: резкий скачок громкости
+            val currentTime = System.currentTimeMillis()
+            if (rms > beatThreshold && currentTime - lastBeatTime > beatCooldown) {
+                _beatDetected.value = true
+                lastBeatTime = currentTime
+                Log.d(TAG, "Beat detected! RMS: $rms, Bass: $newBassLevel")
+                
+                // Сбрасываем флаг бита через короткое время
+                scope.launch {
+                    delay(100)
+                    _beatDetected.value = false
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error analyzing audio", e)
+        }
+    }
+    
+    /**
      * Освобождение ресурсов
      */
     fun release() {
         try {
+            visualizer?.enabled = false
+            visualizer?.release()
             equalizer?.release()
             bassBoost?.release()
             virtualizer?.release()
@@ -458,6 +571,7 @@ class AudioEffectsManager @Inject constructor(
             Log.e(TAG, "Error releasing effects", e)
         }
         
+        visualizer = null
         equalizer = null
         bassBoost = null
         virtualizer = null

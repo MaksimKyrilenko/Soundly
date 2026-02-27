@@ -33,6 +33,9 @@ class MusicService : MediaSessionService() {
     
     @Inject
     lateinit var audioEffectsManager: AudioEffectsManager
+    
+    @Inject
+    lateinit var playerController: PlayerController
 
     private var mediaSession: MediaSession? = null
     private lateinit var player: ExoPlayer
@@ -74,6 +77,9 @@ class MusicService : MediaSessionService() {
         val audioSessionId = player.audioSessionId
         if (audioSessionId != 0) {
             audioEffectsManager.initialize(audioSessionId)
+            // Инициализируем AudioReactiveController через PlayerController
+            playerController.initializeAudioReactive(audioSessionId)
+            android.util.Log.d("MusicService", "AudioReactiveController initialized with session: $audioSessionId")
         }
 
         val sessionActivityPendingIntent = PendingIntent.getActivity(

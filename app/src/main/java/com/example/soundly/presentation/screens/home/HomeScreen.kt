@@ -35,11 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.soundly.R
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.components.AddToPlaylistDialog
 import com.example.soundly.presentation.components.DeleteConfirmDialog
@@ -73,7 +75,7 @@ fun HomeScreen(
 
     // Check and request permissions on first load only
     LaunchedEffect(Unit) {
-        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val hasStoragePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == 
                 PermissionChecker.PERMISSION_GRANTED
         } else {
@@ -81,15 +83,31 @@ fun HomeScreen(
                 PermissionChecker.PERMISSION_GRANTED
         }
         
-        if (hasPermission) {
+        val hasRecordAudioPermission = ContextCompat.checkSelfPermission(
+            context, 
+            Manifest.permission.RECORD_AUDIO
+        ) == PermissionChecker.PERMISSION_GRANTED
+        
+        if (hasStoragePermission) {
             viewModel.initialLoadIfNeeded()
         } else {
             val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_AUDIO,
+                    Manifest.permission.RECORD_AUDIO
+                )
             } else {
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.RECORD_AUDIO
+                )
             }
             permissionLauncher.launch(permissions)
+        }
+        
+        // Запрашиваем RECORD_AUDIO отдельно если его нет
+        if (!hasRecordAudioPermission && hasStoragePermission) {
+            permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
         }
     }
 
@@ -395,7 +413,9 @@ fun TrackItem(
                             model = track.artworkUri,
                             contentDescription = "Album art",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(R.drawable.ic_default_album_art),
+                            placeholder = painterResource(R.drawable.ic_default_album_art)
                         )
                     }
                     

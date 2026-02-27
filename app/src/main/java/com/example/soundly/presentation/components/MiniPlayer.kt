@@ -21,14 +21,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.soundly.presentation.theme.miniPlayerGradient
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.soundly.R
 import com.example.soundly.presentation.screens.home.HomeViewModel
 import com.example.soundly.presentation.screens.home.formatDuration
 import com.example.soundly.presentation.theme.LocalColorPalette
@@ -42,6 +45,34 @@ fun MiniPlayer(
     val playerState by viewModel.playerState.collectAsState()
     val currentTrack = playerState.currentTrack
     val palette = LocalColorPalette.current
+    
+    // Аудио-визуализация из AudioReactiveController
+    val amplitude by viewModel.playerController.amplitude.collectAsState()
+    val bassLevel by viewModel.playerController.bassLevel.collectAsState()
+    val beatDetected by viewModel.playerController.beatDetected.collectAsState()
+    val coverScale by viewModel.playerController.coverScale.collectAsState()
+    
+    // Более агрессивная fallback анимация
+    val infiniteTransition = rememberInfiniteTransition(label = "fallbackPulse")
+    val fallbackPulse by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fallbackPulse"
+    )
+    
+    // Используем данные от AudioReactiveController или fallback
+    val effectiveBassLevel = if (bassLevel > 0.01f) bassLevel else (fallbackPulse * 0.5f)
+    val effectiveBeat = beatDetected || (fallbackPulse > 0.85f && playerState.isPlaying)
+    val effectiveScale = if (coverScale > 1.01f) {
+        coverScale
+    } else {
+        // Fallback: более заметная пульсация
+        1f + (fallbackPulse * 0.12f)
+    }
     
     val progress by animateFloatAsState(
         targetValue = if (playerState.duration > 0) {
@@ -90,42 +121,62 @@ fun MiniPlayer(
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Album art with animated playing indicator
+                            // Album art with animated pulsing effect
                             Box(
                                 modifier = Modifier.size(56.dp),
                                 contentAlignment = Alignment.Center
                             ) {
+                                // Аудио-реактивная анимация с визуальными волнами
+                                // Используем scale напрямую от AudioReactiveController
+                                val animatedScale by animateFloatAsState(
+                                    targetValue = if (playerState.isPlaying) effectiveScale else 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    ),
+                                    label = "audioReactiveScale"
+                                )
+                                
+                                // Внешнее свечение - волны
+                                if (playerState.isPlaying) {
+                                    val waveAlpha = 0.5f + (effectiveBassLevel * 0.5f)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .graphicsLayer {
+                                                scaleX = animatedScale * 1.1f
+                                                scaleY = animatedScale * 1.1f
+                                                alpha = waveAlpha
+                                            }
+                                            .background(
+                                                Brush.radialGradient(
+                                                    colors = listOf(
+                                                        Color.Transparent,
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                                                        Color.Transparent
+                                                    )
+                                                ),
+                                                shape = CircleShape
+                                            )
+                                    )
+                                }
+                                
+                                // Круглая обложка с анимацией
                                 AsyncImage(
                                     model = track.artworkUri,
                                     contentDescription = "Album art",
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop
+                                        .graphicsLayer {
+                                            scaleX = animatedScale
+                                            scaleY = animatedScale
+                                        }
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    error = painterResource(R.drawable.ic_default_album_art),
+                                    placeholder = painterResource(R.drawable.ic_default_album_art)
                                 )
-                                
-                                // Animated playing indicator overlay
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(
-                                            palette.backgroundMid.copy(
-                                                alpha = if (playerState.isPlaying) 0.85f else 0.7f
-                                            )
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    PlayingIndicator(
-                                        isPlaying = playerState.isPlaying,
-                                        barCount = 4,
-                                        barWidth = 4.dp,
-                                        maxBarHeight = 24.dp,
-                                        minBarHeight = 8.dp,
-                                        barColor = palette.textPrimary,
-                                        spacing = 3.dp
-                                    )
-                                }
                             }
 
                             // Track info

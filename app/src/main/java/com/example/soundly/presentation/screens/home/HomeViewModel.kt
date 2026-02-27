@@ -30,7 +30,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val trackRepository: TrackRepository,
     private val playlistRepository: PlaylistRepository,
-    private val playerController: PlayerController
+    val playerController: PlayerController
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())

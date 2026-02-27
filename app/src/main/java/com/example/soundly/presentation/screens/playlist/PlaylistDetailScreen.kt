@@ -28,9 +28,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.soundly.R
 import com.example.soundly.domain.model.Track
 import com.example.soundly.presentation.components.TrackSelectionDialog
 import com.example.soundly.presentation.navigation.Screen
@@ -175,7 +177,16 @@ fun PDTrackItem(track: Track, idx: Int, playing: Boolean, current: Boolean, onCl
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(32.dp), Alignment.Center) { if (playing) PDPlayingIndicator() else Text("$idx", style = MaterialTheme.typography.bodyMedium, color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) }
             Spacer(Modifier.width(12.dp))
-            Surface(Modifier.size(48.dp), RoundedCornerShape(8.dp), MaterialTheme.colorScheme.surfaceVariant) { AsyncImage(track.artworkUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+            Surface(Modifier.size(48.dp), RoundedCornerShape(8.dp), MaterialTheme.colorScheme.surfaceVariant) { 
+                AsyncImage(
+                    model = track.artworkUri, 
+                    contentDescription = null, 
+                    modifier = Modifier.fillMaxSize(), 
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.ic_default_album_art),
+                    placeholder = painterResource(R.drawable.ic_default_album_art)
+                ) 
+            }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(track.title, style = MaterialTheme.typography.bodyLarge, fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal, color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -202,7 +213,16 @@ fun PDTrackMenu(track: Track, onDismiss: () -> Unit, onPlay: () -> Unit, onRemov
     ModalBottomSheet(onDismiss, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
         Column(Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(Modifier.size(56.dp), RoundedCornerShape(12.dp), MaterialTheme.colorScheme.surfaceVariant) { AsyncImage(track.artworkUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                Surface(Modifier.size(56.dp), RoundedCornerShape(12.dp), MaterialTheme.colorScheme.surfaceVariant) { 
+                    AsyncImage(
+                        model = track.artworkUri, 
+                        contentDescription = null, 
+                        modifier = Modifier.fillMaxSize(), 
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_default_album_art),
+                        placeholder = painterResource(R.drawable.ic_default_album_art)
+                    ) 
+                }
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) { Text(track.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(track.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
             }
@@ -219,7 +239,16 @@ fun PDMiniPlayer(track: Track, playing: Boolean, progress: Float, onPP: () -> Un
         Column {
             LinearProgressIndicator({ progress }, Modifier.fillMaxWidth().height(2.dp), MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surfaceVariant)
             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(Modifier.size(48.dp), RoundedCornerShape(10.dp), MaterialTheme.colorScheme.surfaceVariant) { AsyncImage(track.artworkUri, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                Surface(Modifier.size(48.dp), RoundedCornerShape(10.dp), MaterialTheme.colorScheme.surfaceVariant) { 
+                    AsyncImage(
+                        model = track.artworkUri, 
+                        contentDescription = null, 
+                        modifier = Modifier.fillMaxSize(), 
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_default_album_art),
+                        placeholder = painterResource(R.drawable.ic_default_album_art)
+                    ) 
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) { Text(track.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(track.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
                 IconButton(onPrev, Modifier.size(40.dp)) { Icon(Icons.Default.SkipPrevious, "Пред", Modifier.size(24.dp)) }

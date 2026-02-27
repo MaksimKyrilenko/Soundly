@@ -48,12 +48,6 @@ import com.example.soundly.presentation.theme.LocalColorPalette
 fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = LocalHapticFeedback.current
-
-    // Диалог калибровки
-    if (uiState.isCalibrating) {
-        CalibrationDialog(uiState.calibrationStep, viewModel::setCalibrationHeadphoneType, viewModel::setCalibrationBassLevel, 
-            viewModel::setCalibrationHighsLevel, viewModel::setCalibrationVolumeLevel, viewModel::cancelCalibration)
-    }
     
     // Диалог сохранения пресета
     if (uiState.showSavePresetDialog) {
@@ -103,18 +97,16 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
         topBar = {
             TopAppBar(
                 title = { Text("Эквалайзер") },
-                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
+                navigationIcon = { 
+                    IconButton(onClick = { navController.popBackStack() }) { 
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") 
+                    } 
+                },
                 actions = {
                     // Кнопка сброса всех настроек
                     IconButton(onClick = { viewModel.resetAllSettings() }) {
                         Icon(Icons.Default.Refresh, "Сбросить всё", tint = LocalColorPalette.current.textPrimary)
                     }
-                    // Переключатель PRO/SIMPLE режима
-                    FilterChip(
-                        selected = uiState.mode == EqualizerMode.PRO,
-                        onClick = { viewModel.toggleMode() },
-                        label = { Text(if (uiState.mode == EqualizerMode.PRO) "PRO" else "SIMPLE") }
-                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
             )
@@ -129,11 +121,12 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // Скорость и тон
             SpeedCard(
                 speed = uiState.playbackSpeed,
                 pitch = uiState.pitch,
                 playbackMode = uiState.playbackMode,
-                isPro = uiState.mode == EqualizerMode.PRO,
+                isPro = true, // Всегда показываем полный функционал
                 preservePitch = uiState.preservePitch,
                 onModeChange = viewModel::setPlaybackMode,
                 onSpeedChange = viewModel::setSpeed,
@@ -141,93 +134,52 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
                 onPreservePitchChange = viewModel::setPreservePitch,
                 onReset = viewModel::resetPlayback
             )
-            Spacer(Modifier.height(16.dp))
-            PresetsRow(uiState.presets, uiState.currentPresetId, uiState.isEnabled, viewModel::selectPreset)
-            Spacer(Modifier.height(16.dp))
-            BandsCard(uiState.bands, uiState.isEnabled, uiState.mode == EqualizerMode.PRO, viewModel::setBandValue, viewModel::resetBand, haptic)
-            
-            if (uiState.mode == EqualizerMode.PRO) {
-                Spacer(Modifier.height(16.dp))
-                PreampCard(uiState.preamp, uiState.autoGainEnabled, uiState.isEnabled, viewModel::setPreamp, viewModel::toggleAutoGain)
-            }
             
             Spacer(Modifier.height(16.dp))
-            BassCard(uiState.bassEnhancerAmount, uiState.bassEnhancerFrequency, uiState.bassEnhancerMode, uiState.isEnabled, uiState.mode == EqualizerMode.PRO,
-                viewModel::setBassEnhancerAmount, viewModel::setBassEnhancerFrequency, viewModel::setBassEnhancerMode)
             
-            if (uiState.mode == EqualizerMode.PRO) {
-                Spacer(Modifier.height(16.dp))
-                EffectsCard(uiState.stereoWidth, uiState.isMono, uiState.loudnessEnabled, uiState.balanceL, uiState.isEnabled,
-                    viewModel::setStereoWidth, viewModel::toggleMono, viewModel::toggleLoudness, viewModel::setBalance)
-                
-                // Новые расширенные эффекты
-                Spacer(Modifier.height(16.dp))
-                ReverbCard(
-                    settings = uiState.reverb,
-                    enabled = uiState.isEnabled,
-                    onToggle = viewModel::toggleReverb,
-                    onRoomSizeChange = viewModel::setReverbRoomSize,
-                    onDecayChange = viewModel::setReverbDecay,
-                    onWetDryChange = viewModel::setReverbWetDry
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                CompressorCard(
-                    settings = uiState.compressor,
-                    enabled = uiState.isEnabled,
-                    onToggle = viewModel::toggleCompressor,
-                    onThresholdChange = viewModel::setCompressorThreshold,
-                    onRatioChange = viewModel::setCompressorRatio,
-                    onAttackChange = viewModel::setCompressorAttack,
-                    onReleaseChange = viewModel::setCompressorRelease
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                NoiseGateCard(
-                    settings = uiState.noiseGate,
-                    enabled = uiState.isEnabled,
-                    onToggle = viewModel::toggleNoiseGate,
-                    onThresholdChange = viewModel::setNoiseGateThreshold,
-                    onAttackChange = viewModel::setNoiseGateAttack,
-                    onReleaseChange = viewModel::setNoiseGateRelease
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                DeEsserCard(
-                    settings = uiState.deEsser,
-                    enabled = uiState.isEnabled,
-                    onToggle = viewModel::toggleDeEsser,
-                    onFrequencyChange = viewModel::setDeEsserFrequency,
-                    onThresholdChange = viewModel::setDeEsserThreshold,
-                    onReductionChange = viewModel::setDeEsserReduction
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                SubBassCard(
-                    settings = uiState.subBass,
-                    enabled = uiState.isEnabled,
-                    onToggle = viewModel::toggleSubBass,
-                    onAmountChange = viewModel::setSubBassAmount,
-                    onFrequencyChange = viewModel::setSubBassFrequency,
-                    onSubHarmonicsToggle = viewModel::toggleSubHarmonics,
-                    onSubAmountChange = viewModel::setSubHarmonicsAmount
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                SpectrumAnalyzerCard(
-                    enabled = uiState.spectrumEnabled,
-                    data = uiState.spectrumData,
-                    onToggle = viewModel::toggleSpectrum
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                UserPresetsCard(
-                    userPresets = uiState.userPresets,
-                    onLoadPreset = viewModel::loadUserPreset,
-                    onDeletePreset = viewModel::deleteUserPreset,
-                    onSavePreset = viewModel::showSavePresetDialog
-                )
-            }
+            // Готовые пресеты
+            PresetsRow(
+                presets = uiState.presets, 
+                selectedId = uiState.currentPresetId, 
+                enabled = uiState.isEnabled, 
+                onSelect = viewModel::selectPreset
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            // Эквалайзер (10 полос)
+            BandsCard(
+                bands = uiState.bands, 
+                enabled = uiState.isEnabled, 
+                isPro = true, // Всегда показываем все полосы
+                onChange = viewModel::setBandValue, 
+                onReset = viewModel::resetBand, 
+                haptic = haptic
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            // Усиление баса
+            BassCard(
+                amount = uiState.bassEnhancerAmount, 
+                freq = uiState.bassEnhancerFrequency, 
+                mode = uiState.bassEnhancerMode, 
+                enabled = uiState.isEnabled, 
+                isPro = true,
+                onAmountChange = viewModel::setBassEnhancerAmount, 
+                onFreqChange = viewModel::setBassEnhancerFrequency, 
+                onModeChange = viewModel::setBassEnhancerMode
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            // Пользовательские пресеты
+            UserPresetsCard(
+                userPresets = uiState.userPresets,
+                onLoadPreset = viewModel::loadUserPreset,
+                onDeletePreset = viewModel::deleteUserPreset,
+                onSavePreset = viewModel::showSavePresetDialog
+            )
             
             Spacer(Modifier.height(24.dp))
             
@@ -239,8 +191,6 @@ fun EqualizerScreen(navController: NavController, viewModel: EqualizerViewModel 
                 onExportClick = viewModel::showExportDialog
             )
             
-            Spacer(Modifier.height(16.dp))
-            ActionButtons(uiState.isComparing, haptic, viewModel::startCompare, viewModel::endCompare, viewModel::startCalibration, viewModel::resetToFlat) { viewModel.saveSettings(); navController.popBackStack() }
             Spacer(Modifier.height(16.dp))
         }
     }
